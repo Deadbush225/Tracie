@@ -14,10 +14,13 @@
 	let svgRect = { left: 0, top: 0 };
 
 	let hoveredNode = null;
-	let selectedLink = null;
+
+	// Change from single selectedLink to array model
+	let selectedLinks = [];
+	let selectedLink = null; // Keep for backward compatibility
 
 	// Add component selection functionality
-	let selectedComponentId = null;
+	let selectedComponentIds = [];
 
 	$: comps = $components;
 	$: ls = $links;
@@ -404,173 +407,6 @@
 		updateLinkTableAndLinks(); // Ensure links are updated immediately after move
 	}
 
-	// Smart grid-based A* pathfinding that never crosses any component (fix: check for edge crossing, not just node-in-box)
-	function findSmartPath(x1, y1, x2, y2, fromSide, toSide, fromId, toId) {
-		const gridSize = 16;
-		const margin = 10;
-		const maxSteps = 4000;
-
-		const start = {
-			x: Math.round(x1 / gridSize),
-			y: Math.round(y1 / gridSize),
-		};
-		const end = { x: Math.round(x2 / gridSize), y: Math.round(y2 / gridSize) };
-
-		const boxes = getAllComponentBoxes([fromId, toId]);
-
-		// Helper to check if a line segment crosses a box
-		function segmentIntersectsBox(xa, ya, xb, yb, box) {
-			const minX = Math.min(xa, xb),
-				maxX = Math.max(xa, xb);
-			const minY = Math.min(ya, yb),
-				maxY = Math.max(ya, yb);
-			// If both points are outside box in same direction, skip
-			if (maxX < box.left - margin || minX > box.right + margin || maxY < box.top - margin || minY > box.bottom + margin) return false;
-			// Check for intersection with each box edge
-			const lines = [
-				// top
-				[box.left - margin, box.top - margin, box.right + margin, box.top - margin],
-				// bottom
-				[box.left - margin, box.bottom + margin, box.right + margin, box.bottom + margin],
-				// left
-				[box.left - margin, box.top - margin, box.left - margin, box.bottom + margin],
-				// right
-				[box.right + margin, box.top - margin, box.right + margin, box.bottom + margin],
-			];
-			for (const [x3, y3, x4, y4] of lines) {
-				if (segmentsIntersect(xa, ya, xb, yb, x3, y3, x4, y4)) return true;
-			}
-			// Also check if the segment is entirely inside the box
-			if (
-				xa > box.left - margin &&
-				xa < box.right + margin &&
-				ya > box.top - margin &&
-				ya < box.bottom + margin &&
-				xb > box.left - margin &&
-				xb < box.right + margin &&
-				yb > box.top - margin &&
-				yb < box.bottom + margin
-			)
-				return true;
-			return false;
-		}
-
-		// Helper: do two segments intersect
-		function segmentsIntersect(x1, y1, x2, y2, x3, y3, x4, y4) {
-			function ccw(ax, ay, bx, by, cx, cy) {
-				return (cy - ay) * (bx - ax) > (by - ay) * (cx - ax);
-			}
-			return ccw(x1, y1, x3, y3, x4, y4) !== ccw(x2, y2, x3, y3, x4, y4) && ccw(x1, y1, x2, y2, x3, y3) !== ccw(x1, y1, x2, y2, x4, y4);
-		}
-
-		function isBlocked(x, y, px, py) {
-			const ax = x * gridSize,
-				ay = y * gridSize;
-			const bx = px * gridSize,
-				by = py * gridSize;
-			return boxes.some((b) => segmentIntersectsBox(ax, ay, bx, by, b));
-		}
-
-		function allowedFirstStep(dx, dy, side) {
-			switch (side) {
-				case "top":
-					return dx === 0 && dy === -1;
-				case "bottom":
-					return dx === 0 && dy === 1;
-				case "left":
-					return dx === -1 && dy === 0;
-				case "right":
-					return dx === 1 && dy === 0;
-			}
-			return true;
-		}
-		function allowedLastStep(prev, curr, side) {
-			switch (side) {
-				case "top":
-					return curr.y < prev.y;
-				case "bottom":
-					return curr.y > prev.y;
-				case "left":
-					return curr.x < prev.x;
-				case "right":
-					return curr.x > prev.x;
-			}
-			return true;
-		}
-
-		const open = new PriorityQueue();
-		open.enqueue(start, 0);
-		const cameFrom = {};
-		const gScore = {};
-		const fScore = {};
-		const key = (p) => `${p.x},${p.y}`;
-		gScore[key(start)] = 0;
-		fScore[key(start)] = Math.abs(start.x - end.x) + Math.abs(start.y - end.y);
-
-		let found = false;
-		let steps = 0;
-		while (open.items.length && steps++ < maxSteps) {
-			const current = open.dequeue();
-			if (current.x === end.x && current.y === end.y) {
-				found = true;
-				break;
-			}
-			const neighbors = [
-				{ dx: 1, dy: 0 },
-				{ dx: -1, dy: 0 },
-				{ dx: 0, dy: 1 },
-				{ dx: 0, dy: -1 },
-			];
-			for (const { dx, dy } of neighbors) {
-				const neighbor = { x: current.x + dx, y: current.y + dy };
-				const nKey = key(neighbor);
-
-				// First step: must go in allowed direction from start
-				if (key(current) === key(start) && !allowedFirstStep(dx, dy, fromSide)) continue;
-
-				// Last step: must approach end from allowed direction
-				if (neighbor.x === end.x && neighbor.y === end.y) {
-					if (!allowedLastStep(current, neighbor, toSide)) continue;
-				}
-
-				if (isBlocked(neighbor.x, neighbor.y, current.x, current.y)) continue;
-				const tentative = (gScore[key(current)] || 99999) + 1;
-				if (tentative < (gScore[nKey] || 99999)) {
-					cameFrom[nKey] = current;
-					gScore[nKey] = tentative;
-					fScore[nKey] = tentative + Math.abs(neighbor.x - end.x) + Math.abs(neighbor.y - end.y);
-					if (!open.items.some((p) => p.x === neighbor.x && p.y === neighbor.y)) open.enqueue(neighbor, fScore[nKey]);
-				}
-			}
-		}
-		let path = [];
-		if (found) {
-			let curr = end;
-			while (curr && (curr.x !== start.x || curr.y !== start.y)) {
-				path.push({ x: curr.x * gridSize, y: curr.y * gridSize });
-				curr = cameFrom[key(curr)];
-			}
-			path.push({ x: start.x * gridSize, y: start.y * gridSize });
-			path.reverse();
-		} else {
-			// fallback: straight line
-			path = [
-				{ x: x1, y: y1 },
-				{ x: x2, y: y2 },
-			];
-		}
-		return path;
-	}
-
-	function makeSmartSVGPath(x1, y1, x2, y2, fromSide, toSide, fromId, toId) {
-		const pts = findSmartPath(x1, y1, x2, y2, fromSide, toSide, fromId, toId);
-		let d = `M${pts[0].x},${pts[0].y}`;
-		for (let i = 1; i < pts.length; i++) {
-			d += ` L${pts[i].x},${pts[i].y}`;
-		}
-		return d;
-	}
-
 	let usePathfinding = false; // Toggle for pathfinding vs bezier
 
 	function makeBezierPath(x1, y1, x2, y2) {
@@ -612,17 +448,40 @@
 		return { fromPos, toPos, link, path };
 	});
 
-	// Force redraw when any component moves (by tracking all positions)
-	$: tick = comps.map((c) => `${c.x},${c.y}`).join(";");
-
 	function handleLinkClick(link, event) {
 		event.stopPropagation();
-		selectedLink = link;
+
+		// Multi-selection with Shift key
+		if (event.shiftKey) {
+			if (selectedLinks.includes(link)) {
+				// If already selected, remove it
+				selectedLinks = selectedLinks.filter((l) => l !== link);
+				if (selectedLink === link) selectedLink = null;
+			} else {
+				// Add to selection
+				selectedLinks = [...selectedLinks, link];
+				selectedLink = link; // Keep the legacy behavior of highlighting the last clicked link
+			}
+		} else {
+			// Single selection
+			selectedLinks = [link];
+			selectedLink = link;
+			// Clear component selection when selecting link without shift
+			selectedComponentIds = [];
+		}
 	}
 
 	function deleteSelectedLink() {
 		if (selectedLink) {
 			links.update((current) => current.filter((l) => l !== selectedLink));
+			selectedLink = null;
+		}
+	}
+
+	function deleteSelectedLinks() {
+		if (selectedLinks.length > 0) {
+			links.update((current) => current.filter((link) => !selectedLinks.includes(link)));
+			selectedLinks = [];
 			selectedLink = null;
 		}
 	}
@@ -647,18 +506,87 @@
 	function handleKeyDown(event) {
 		// Delete component/link
 		if (event.key === "Delete" || event.key === "Backspace") {
-			if (selectedLink) {
-				deleteSelectedLink();
-			} else if (selectedComponentId) {
-				deleteComponent(selectedComponentId);
-				selectedComponentId = null;
+			// Delete links first if any are selected
+			if (selectedLinks.length > 0) {
+				deleteSelectedLinks();
+			} else if (selectedComponentIds.length > 0) {
+				// Delete all selected components
+				for (const id of selectedComponentIds) {
+					deleteComponent(id);
+				}
+				selectedComponentIds = [];
 			}
 		}
 
-		// Duplicate component with Ctrl+D
-		if (event.ctrlKey && event.key === "d" && selectedComponentId) {
-			event.preventDefault(); // Prevent browser bookmark
-			selectedComponentId = duplicateComponent(selectedComponentId);
+		// Duplicate selected components and links with Ctrl+D
+		if (event.ctrlKey && event.key === "d") {
+			event.preventDefault();
+
+			// First, duplicate all selected components and collect their new IDs
+			const oldToNewIdMap = {}; // Mapping of old IDs to new IDs (for link duplication)
+			const newIds = [];
+
+			// Duplicate components first
+			if (selectedComponentIds.length > 0) {
+				for (const selectedId of selectedComponentIds) {
+					const newId = duplicateComponent(selectedId, 20, 20);
+					if (newId) {
+						newIds.push(newId);
+						oldToNewIdMap[selectedId] = newId;
+					}
+				}
+			}
+
+			// Then duplicate any selected links
+			if (selectedLinks.length > 0) {
+				links.update((current) => {
+					const newLinks = [...current];
+
+					for (const link of selectedLinks) {
+						// Only duplicate links if both components are selected and duplicated
+						const fromId = link.from.componentId;
+						const toId = link.to.componentId;
+
+						if (oldToNewIdMap[fromId] && oldToNewIdMap[toId]) {
+							// Create new link between the duplicated components
+							const newLink = {
+								...link,
+								from: {
+									...link.from,
+									componentId: oldToNewIdMap[fromId],
+								},
+								to: {
+									...link.to,
+									componentId: oldToNewIdMap[toId],
+								},
+								// Generate a new color so it's not identical
+								color:
+									"#" +
+									Math.floor(Math.random() * 0xffffff)
+										.toString(16)
+										.padStart(6, "0"),
+							};
+
+							newLinks.push(newLink);
+						}
+					}
+
+					return newLinks;
+				});
+			}
+
+			// Select the newly created components
+			if (newIds.length > 0) {
+				selectedComponentIds = newIds;
+				selectedLinks = []; // Clear link selection since we have new components selected
+				selectedLink = null;
+			}
+		}
+
+		// Select all components with Ctrl+A
+		if (event.ctrlKey && event.key === "a") {
+			event.preventDefault();
+			selectedComponentIds = comps.map((comp) => comp.id);
 		}
 	}
 
@@ -679,21 +607,184 @@
 			return;
 		}
 
-		// Set this regardless of event target
-		selectedComponentId = comp.id;
+		// Multi-selection with Shift key
+		if (event.shiftKey) {
+			// If already selected, remove from selection
+			if (selectedComponentIds.includes(comp.id)) {
+				selectedComponentIds = selectedComponentIds.filter((id) => id !== comp.id);
+			} else {
+				// Add to selection
+				selectedComponentIds = [...selectedComponentIds, comp.id];
+			}
+		} else {
+			// Single selection (replace current selection)
+			selectedComponentIds = [comp.id];
+		}
+
 		// Make sure we stop propagation so the background click doesn't immediately deselect
 		event.stopPropagation();
+	}
+	// Selection box visualizer (add it to the relative position container)
+	$: {
+		if (selectedComponentIds.length > 0) {
+			// Find bounding box of all selected components
+			let minX = Infinity;
+			let minY = Infinity;
+			let maxX = -Infinity;
+			let maxY = -Infinity;
+
+			selectedComponentIds.forEach((id) => {
+				const box = getComponentBox(id);
+				if (box) {
+					minX = Math.min(minX, box.left);
+					minY = Math.min(minY, box.top);
+					maxX = Math.max(maxX, box.right);
+					maxY = Math.max(maxY, box.bottom);
+				}
+			});
+
+			// Update selection box styles
+			const selectionOverlay = document.querySelector(".group-selection-box");
+			if (selectionOverlay) {
+				selectionOverlay.style.left = `${minX}px`;
+				selectionOverlay.style.top = `${minY}px`;
+				selectionOverlay.style.width = `${maxX - minX}px`;
+				selectionOverlay.style.height = `${maxY - minY}px`;
+				selectionOverlay.style.display = "block";
+			}
+		} else {
+			const selectionOverlay = document.querySelector(".group-selection-box");
+			if (selectionOverlay) {
+				selectionOverlay.style.display = "none";
+			}
+		}
+	}
+
+	// Group movement functionality
+	let isDraggingGroup = false;
+	let groupDragStart = { x: 0, y: 0 };
+	let componentStartPositions = [];
+
+	function handleGroupDragStart(event) {
+		if (selectedComponentIds.length > 0 && event.target.closest(".component-wrapper")) {
+			isDraggingGroup = true;
+			groupDragStart = { x: event.clientX, y: event.clientY };
+			componentStartPositions = selectedComponentIds.map((id) => {
+				const comp = comps.find((c) => c.id === id);
+				return { id, x: comp.x, y: comp.y };
+			});
+			event.preventDefault();
+		}
+	}
+
+	function handleGroupDragMove(event) {
+		if (isDraggingGroup) {
+			const dx = event.clientX - groupDragStart.x;
+			const dy = event.clientY - groupDragStart.y;
+
+			components.update((current) =>
+				current.map((comp) => {
+					if (selectedComponentIds.includes(comp.id)) {
+						const startPos = componentStartPositions.find((p) => p.id === comp.id);
+						return {
+							...comp,
+							x: startPos.x + dx,
+							y: startPos.y + dy,
+						};
+					}
+					return comp;
+				})
+			);
+		}
+	}
+
+	function handleGroupDragEnd() {
+		isDraggingGroup = false;
 	}
 
 	// Background click to deselect
 	function handleBackgroundClick() {
 		console.log("Background clicked, deselecting"); // Add debug logging
-		selectedComponentId = null;
+		selectedComponentIds = [];
+		selectedLinks = [];
 		selectedLink = null;
+	}
+
+	// Add selection box for multi-select by dragging
+	let selectionBox = null;
+	let selectionStartPos = null;
+
+	function handleSelectionStart(event) {
+		// Only start selection box if not clicking on a component
+		if (event.target === svgContainer) {
+			selectionStartPos = { x: event.clientX, y: event.clientY };
+			selectionBox = {
+				x: event.clientX,
+				y: event.clientY,
+				width: 0,
+				height: 0,
+			};
+
+			// Don't start component dragging
+			event.stopPropagation();
+		}
+	}
+
+	function handleSelectionMove(event) {
+		if (selectionStartPos) {
+			// Update selection box dimensions
+			const currentX = event.clientX;
+			const currentY = event.clientY;
+
+			selectionBox = {
+				x: Math.min(selectionStartPos.x, currentX),
+				y: Math.min(selectionStartPos.y, currentY),
+				width: Math.abs(currentX - selectionStartPos.x),
+				height: Math.abs(currentY - selectionStartPos.y),
+			};
+		}
+	}
+
+	function handleSelectionEnd() {
+		if (selectionBox && selectionBox.width > 5 && selectionBox.height > 5) {
+			// Select all components that intersect with the selection box
+			const newSelection = [];
+
+			for (const comp of comps) {
+				const el = document.getElementById(`array-comp-${comp.id}`);
+				if (el) {
+					const rect = el.getBoundingClientRect();
+
+					// Check if component intersects with selection box
+					if (rect.left < selectionBox.x + selectionBox.width && rect.right > selectionBox.x && rect.top < selectionBox.y + selectionBox.height && rect.bottom > selectionBox.y) {
+						newSelection.push(comp.id);
+					}
+				}
+			}
+
+			// If shift is not pressed, replace selection, otherwise add to it
+			if (!event.shiftKey) {
+				selectedComponentIds = newSelection;
+			} else {
+				selectedComponentIds = [...new Set([...selectedComponentIds, ...newSelection])];
+			}
+		}
+
+		// Reset selection box
+		selectionBox = null;
+		selectionStartPos = null;
 	}
 </script>
 
-<div bind:this={svgContainer} style="position:relative; width:100vw; height:100vh; background:#f8f8f8;" on:click={handleBackgroundClick}>
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<div
+	bind:this={svgContainer}
+	style="position:relative; width:100vw; height:100vh; background:#f8f8f8;"
+	on:click={handleBackgroundClick}
+	on:mousedown={handleSelectionStart}
+	on:mousemove={handleSelectionMove}
+	on:mouseup={handleSelectionEnd}
+>
 	<div class="menu">
 		<button on:click={addArrayComponent}> Add Array </button>
 		<button on:click={add2DTableComponent}> Add 2D Table </button>
@@ -702,6 +793,7 @@
 			{usePathfinding ? "Use Bezier" : "Use Pathfinding"}
 		</button> -->
 	</div>
+	<!-- Link rendering with selection highlighting -->
 	<svg style="position:absolute; left:0; top:0; width:100vw; height:100vh; pointer-events:none; z-index:1;">
 		{#each linkEndpoints as { fromPos, toPos, link, path } (link)}
 			{#if fromPos && toPos}
@@ -709,8 +801,9 @@
 				<path d={path} stroke="transparent" stroke-width="16" fill="none" style="pointer-events:stroke" on:click={(e) => handleLinkClick(link, e)} />
 				<path
 					d={path}
-					stroke={selectedLink === link ? "#d32f2f" : link.color}
-					stroke-width={selectedLink === link ? 4 : 2}
+					stroke={selectedLinks.includes(link) ? "#d32f2f" : link.color}
+					stroke-width={selectedLinks.includes(link) ? 4 : 2}
+					stroke-dasharray={selectedLinks.includes(link) ? "6,3" : "none"}
 					fill="none"
 					style="pointer-events:stroke"
 					on:click={(e) => handleLinkClick(link, e)}
@@ -744,9 +837,14 @@
 		{/if}
 	</svg>
 
+	<!-- Selection box overlay -->
+	{#if selectionBox}
+		<div class="selection-box" style="position:absolute; left:{selectionBox.x}px; top:{selectionBox.y}px; width:{selectionBox.width}px; height:{selectionBox.height}px;"></div>
+	{/if}
+
 	{#each comps as comp (comp.id)}
 		{#if comp.type === "array"}
-			<div on:click|stopPropagation={(e) => handleComponentClick(comp, e)} class="component-wrapper {selectedComponentId === comp.id ? 'selected-component-wrapper' : ''}">
+			<div on:click|stopPropagation={(e) => handleComponentClick(comp, e)}>
 				<ArrayComponent
 					id={comp.id}
 					x={comp.x}
@@ -756,11 +854,11 @@
 					{hoveredNode}
 					on:move={handleComponentMove}
 					on:redraw={() => {}}
-					class={selectedComponentId === comp.id ? "selected-component" : ""}
+					class_={selectedComponentIds.includes(comp.id) ? "selected-component" : ""}
 				/>
 			</div>
 		{:else if comp.type === "2darray"}
-			<div on:click|stopPropagation={(e) => handleComponentClick(comp, e)} class="component-wrapper {selectedComponentId === comp.id ? 'selected-component-wrapper' : ''}">
+			<div on:click|stopPropagation={(e) => handleComponentClick(comp, e)}>
 				<Table2DComponent
 					id={comp.id}
 					x={comp.x}
@@ -771,11 +869,11 @@
 					{hoveredNode}
 					on:move={handleComponentMove}
 					on:redraw={() => {}}
-					class={selectedComponentId === comp.id ? "selected-component" : ""}
+					class_={selectedComponentIds.includes(comp.id) ? "selected-component" : ""}
 				/>
 			</div>
 		{:else if comp.type === "pointer"}
-			<div on:click|stopPropagation={(e) => handleComponentClick(comp, e)} class="component-wrapper {selectedComponentId === comp.id ? 'selected-component-wrapper' : ''}">
+			<div on:click|stopPropagation={(e) => handleComponentClick(comp, e)}>
 				<PointerComponent
 					id={comp.id}
 					x={comp.x}
@@ -785,7 +883,7 @@
 					{hoveredNode}
 					on:move={handleComponentMove}
 					on:redraw={() => {}}
-					class={selectedComponentId === comp.id ? "selected-component" : ""}
+					class_={selectedComponentIds.includes(comp.id) ? "selected-component" : ""}
 				/>
 			</div>
 		{/if}
@@ -804,8 +902,8 @@
 	}
 
 	:global(.selected-component) {
-		outline: 2px solid #2196f3 !important;
-		outline-offset: 1px;
+		outline: 2px dashed #2196f3 !important;
+		outline-offset: 2px;
 		box-shadow: 0 0 12px rgba(33, 150, 243, 0.5) !important;
 	}
 
@@ -816,5 +914,12 @@
 
 	.selected-component-wrapper {
 		z-index: 2; /* Bring selected component to front */
+	}
+
+	.selection-box {
+		border: 1px dashed #2196f3;
+		background: rgba(33, 150, 243, 0.1);
+		pointer-events: none;
+		z-index: 3;
 	}
 </style>

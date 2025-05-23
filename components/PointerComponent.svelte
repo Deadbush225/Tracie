@@ -4,6 +4,7 @@
 	export let y;
 	export let value = "";
 	export let hoveredNode = null;
+	export let class_ = "";
 
 	import { deleteComponent } from "../src/Whiteboard_back";
 	import { createEventDispatcher, onMount } from "svelte";
@@ -91,6 +92,7 @@
 <div
 	bind:this={container}
 	id={"line-editor-" + id}
+	class={class_}
 	style="position:absolute; left:{pos.x}px; top:{pos.y}px; border:1px solid #333; background:#fff; border-radius:6px; box-shadow:0 2px 8px #0002; user-select:none; cursor:{dragging
 		? 'grabbing'
 		: 'grab'}; padding:8px; min-width:200px;"

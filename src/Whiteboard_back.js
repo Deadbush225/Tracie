@@ -75,7 +75,9 @@ export function deleteComponent(id) {
 	links.update((ls) => ls.filter((l) => l.from.componentId !== id && l.to.componentId !== id));
 }
 
-export function duplicateComponent(id) {
+export function duplicateComponent(id, offsetX = 20, offsetY = 20) {
+	let newId = null;
+
 	components.update((comps) => {
 		const original = comps.find((c) => c.id === id);
 		if (!original) return comps;
@@ -83,12 +85,40 @@ export function duplicateComponent(id) {
 		const copy = {
 			...original,
 			id: nextId++,
-			x: original.x + 20,
-			y: original.y + 20,
+			x: original.x + offsetX,
+			y: original.y + offsetY,
 		};
 
+		newId = copy.id;
 		return [...comps, copy];
 	});
 
-	return nextId - 1; // Return the new component's id
+	return newId; // Return the new component's id
+}
+
+export function duplicateMultipleComponents(ids, offsetX = 20, offsetY = 20) {
+	const newIds = [];
+
+	components.update((comps) => {
+		const copies = [];
+
+		for (const id of ids) {
+			const original = comps.find((c) => c.id === id);
+			if (original) {
+				const copy = {
+					...original,
+					id: nextId++,
+					x: original.x + offsetX,
+					y: original.y + offsetY,
+				};
+
+				newIds.push(copy.id);
+				copies.push(copy);
+			}
+		}
+
+		return [...comps, ...copies];
+	});
+
+	return newIds;
 }
