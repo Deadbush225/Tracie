@@ -2,7 +2,8 @@
 	export let id;
 	export let x;
 	export let y;
-	export let length;
+	export let rows = 2; // new: number of rows
+	export let cols = 3; // new: number of columns
 	export let hoveredNode = null;
 
 	import { deleteComponent } from "../src/Whiteboard";
@@ -52,7 +53,16 @@
 		};
 	});
 
-	let data = Array(length).fill("");
+	// 2D array data
+	let data = Array.from({ length: rows }, () => Array(cols).fill(""));
+
+	// Update data if rows/cols change
+	$: if (data.length !== rows || data[0]?.length !== cols) {
+		const newData = Array.from({ length: rows }, (_, r) =>
+			Array.from({ length: cols }, (_, c) => data[r]?.[c] ?? "")
+		);
+		data = newData;
+	}
 
 	function getNodeCenter(side) {
 		const rect = container.getBoundingClientRect();
@@ -100,10 +110,16 @@
 		: 'grab'}; padding:8px;"
 	on:mousedown={handleMouseDown}
 >
-	<button on:click={() => deleteComponent(id)} class="delete-x" title="Delete"> × </button>
+	<button on:click={() => deleteComponent(id)} class="delete-x" title="Delete">
+		×
+	</button>
 	<!-- Nodes on all sides -->
 	<div
-		class="node {hoveredNode && hoveredNode.componentId === id && hoveredNode.side === 'top' ? 'node-hovered' : ''}"
+		class="node {hoveredNode &&
+		hoveredNode.componentId === id &&
+		hoveredNode.side === 'top'
+			? 'node-hovered'
+			: ''}"
 		data-comp-id={id}
 		data-side="top"
 		style="left:50%; top:-14px; transform:translateX(-50%);"
@@ -115,7 +131,11 @@
 			})}
 	/>
 	<div
-		class="node {hoveredNode && hoveredNode.componentId === id && hoveredNode.side === 'bottom' ? 'node-hovered' : ''}"
+		class="node {hoveredNode &&
+		hoveredNode.componentId === id &&
+		hoveredNode.side === 'bottom'
+			? 'node-hovered'
+			: ''}"
 		data-comp-id={id}
 		data-side="bottom"
 		style="left:50%; bottom:-14px; transform:translateX(-50%);"
@@ -127,7 +147,11 @@
 			})}
 	/>
 	<div
-		class="node {hoveredNode && hoveredNode.componentId === id && hoveredNode.side === 'left' ? 'node-hovered' : ''}"
+		class="node {hoveredNode &&
+		hoveredNode.componentId === id &&
+		hoveredNode.side === 'left'
+			? 'node-hovered'
+			: ''}"
 		data-comp-id={id}
 		data-side="left"
 		style="left:-14px; top:50%; transform:translateY(-50%);"
@@ -139,7 +163,11 @@
 			})}
 	/>
 	<div
-		class="node {hoveredNode && hoveredNode.componentId === id && hoveredNode.side === 'right' ? 'node-hovered' : ''}"
+		class="node {hoveredNode &&
+		hoveredNode.componentId === id &&
+		hoveredNode.side === 'right'
+			? 'node-hovered'
+			: ''}"
 		data-comp-id={id}
 		data-side="right"
 		style="right:-14px; top:50%; transform:translateY(-50%);"
@@ -151,21 +179,31 @@
 			})}
 	/>
 
-	<!-- Table -->
+	<!-- 2D Table -->
 	<table style="border-collapse:collapse;">
 		<tbody>
 			<tr>
-				{#each Array(length) as _, i}
-					<td style="border:1px solid #888; padding:6px; background:#e3e3e3;">{i}</td>
+				<td></td>
+				{#each Array(cols) as _, c}
+					<td
+						style="border:1px solid #888; padding:6px; background:#e3e3e3; text-align:center;"
+						>{c}</td
+					>
 				{/each}
 			</tr>
-			<tr>
-				{#each Array(length) as _, i}
-					<td style="border:1px solid #888; padding:6px;">
-						<input style="width:40px;" bind:value={data[i]} />
-					</td>
-				{/each}
-			</tr>
+			{#each Array(rows) as _, r}
+				<tr>
+					<td
+						style="border:1px solid #888; padding:6px; background:#e3e3e3; text-align:center;"
+						>{r}</td
+					>
+					{#each Array(cols) as _, c}
+						<td style="border:1px solid #888; padding:6px;">
+							<input style="width:40px;" bind:value={data[r][c]} />
+						</td>
+					{/each}
+				</tr>
+			{/each}
 		</tbody>
 	</table>
 </div>

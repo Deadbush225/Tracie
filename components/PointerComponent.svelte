@@ -2,7 +2,7 @@
 	export let id;
 	export let x;
 	export let y;
-	export let length;
+	export let value = "";
 	export let hoveredNode = null;
 
 	import { deleteComponent } from "../src/Whiteboard";
@@ -32,9 +32,8 @@
 			};
 			if (newPos.x !== pos.x || newPos.y !== pos.y) {
 				pos = newPos;
-				// Notify parent of new position
 				dispatch("move", { id, x: pos.x, y: pos.y });
-				dispatch("redraw"); // notify parent to force SVG update
+				dispatch("redraw");
 			}
 		}
 	}
@@ -51,8 +50,6 @@
 			window.removeEventListener("mouseup", handleMouseUp);
 		};
 	});
-
-	let data = Array(length).fill("");
 
 	function getNodeCenter(side) {
 		const rect = container.getBoundingClientRect();
@@ -82,7 +79,6 @@
 		}
 	}
 
-	// Register getNodeCenter for hit detection
 	function registerNode(side) {
 		if (!window.__getNodeCenterMap) window.__getNodeCenterMap = {};
 		window.__getNodeCenterMap[`${id}-${side}`] = () => getNodeCenter(side);
@@ -94,16 +90,22 @@
 
 <div
 	bind:this={container}
-	id={"array-comp-" + id}
+	id={"line-editor-" + id}
 	style="position:absolute; left:{pos.x}px; top:{pos.y}px; border:1px solid #333; background:#fff; border-radius:6px; box-shadow:0 2px 8px #0002; user-select:none; cursor:{dragging
 		? 'grabbing'
-		: 'grab'}; padding:8px;"
+		: 'grab'}; padding:8px; min-width:200px;"
 	on:mousedown={handleMouseDown}
 >
-	<button on:click={() => deleteComponent(id)} class="delete-x" title="Delete"> × </button>
+	<button on:click={() => deleteComponent(id)} class="delete-x" title="Delete">
+		×
+	</button>
 	<!-- Nodes on all sides -->
 	<div
-		class="node {hoveredNode && hoveredNode.componentId === id && hoveredNode.side === 'top' ? 'node-hovered' : ''}"
+		class="node {hoveredNode &&
+		hoveredNode.componentId === id &&
+		hoveredNode.side === 'top'
+			? 'node-hovered'
+			: ''}"
 		data-comp-id={id}
 		data-side="top"
 		style="left:50%; top:-14px; transform:translateX(-50%);"
@@ -115,7 +117,11 @@
 			})}
 	/>
 	<div
-		class="node {hoveredNode && hoveredNode.componentId === id && hoveredNode.side === 'bottom' ? 'node-hovered' : ''}"
+		class="node {hoveredNode &&
+		hoveredNode.componentId === id &&
+		hoveredNode.side === 'bottom'
+			? 'node-hovered'
+			: ''}"
 		data-comp-id={id}
 		data-side="bottom"
 		style="left:50%; bottom:-14px; transform:translateX(-50%);"
@@ -127,7 +133,11 @@
 			})}
 	/>
 	<div
-		class="node {hoveredNode && hoveredNode.componentId === id && hoveredNode.side === 'left' ? 'node-hovered' : ''}"
+		class="node {hoveredNode &&
+		hoveredNode.componentId === id &&
+		hoveredNode.side === 'left'
+			? 'node-hovered'
+			: ''}"
 		data-comp-id={id}
 		data-side="left"
 		style="left:-14px; top:50%; transform:translateY(-50%);"
@@ -139,7 +149,11 @@
 			})}
 	/>
 	<div
-		class="node {hoveredNode && hoveredNode.componentId === id && hoveredNode.side === 'right' ? 'node-hovered' : ''}"
+		class="node {hoveredNode &&
+		hoveredNode.componentId === id &&
+		hoveredNode.side === 'right'
+			? 'node-hovered'
+			: ''}"
 		data-comp-id={id}
 		data-side="right"
 		style="right:-14px; top:50%; transform:translateY(-50%);"
@@ -151,23 +165,13 @@
 			})}
 	/>
 
-	<!-- Table -->
-	<table style="border-collapse:collapse;">
-		<tbody>
-			<tr>
-				{#each Array(length) as _, i}
-					<td style="border:1px solid #888; padding:6px; background:#e3e3e3;">{i}</td>
-				{/each}
-			</tr>
-			<tr>
-				{#each Array(length) as _, i}
-					<td style="border:1px solid #888; padding:6px;">
-						<input style="width:40px;" bind:value={data[i]} />
-					</td>
-				{/each}
-			</tr>
-		</tbody>
-	</table>
+	<!-- Editable line input -->
+	<input
+		type="text"
+		bind:value
+		style="width:100%; font-size:1.1em; border:none; outline:none; background:transparent; padding:4px;"
+		on:input={() => dispatch("edit", { id, value })}
+	/>
 </div>
 
 <style>
@@ -186,5 +190,8 @@
 		box-shadow: 0 0 0 6px rgba(25, 118, 210, 0.2);
 		border: 2px solid #1976d2;
 		background: #fff;
+	}
+	input[type="text"] {
+		box-sizing: border-box;
 	}
 </style>

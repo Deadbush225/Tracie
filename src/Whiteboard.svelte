@@ -1,24 +1,19 @@
 <script>
 	import ArrayComponent from "../components/ArrayComponent.svelte";
+	import Table2DComponent from "../components/Table2DComponent.svelte";
+	import PointerComponent from "../components/PointerComponent.svelte";
+
+	import {
+		components,
+		links,
+		addArrayComponent,
+		add2DTableComponent,
+		addPointerComponent,
+		deleteComponent,
+	} from "./whiteboard";
+
 	import { onMount } from "svelte";
-	let nextId = 1;
-	let components = [
-		{
-			id: nextId++,
-			type: "array",
-			x: 100,
-			y: 100,
-			length: 4,
-		},
-		{
-			id: nextId++,
-			type: "array",
-			x: 200,
-			y: 300,
-			length: 4,
-		},
-	];
-	let links = [];
+
 	let linkingFrom = null;
 	let draggingLink = null;
 	let mouse = { x: 0, y: 0 };
@@ -27,6 +22,9 @@
 
 	let hoveredNode = null;
 	let selectedLink = null;
+
+	$: comps = $components;
+	$: ls = $links;
 
 	// Table of link endpoints by component id for fast update
 	let linkTable = {};
@@ -53,7 +51,7 @@
 
 	// Helper: get all bounding boxes except the source and target
 	function getAllComponentBoxes(excludeIds = []) {
-		return components
+		return comps
 			.filter((c) => !excludeIds.includes(c.id))
 			.map((c) => ({ id: c.id, ...getComponentBox(c.id) }))
 			.filter((b) => b.left !== undefined && b.top !== undefined);
@@ -352,21 +350,6 @@
 		}
 	}
 
-	function addArrayComponent() {
-		const len = parseInt(prompt("Enter array length:"), 10);
-		if (isNaN(len) || len < 1) return;
-		components = [
-			...components,
-			{
-				id: nextId++,
-				type: "array",
-				x: 100,
-				y: 100,
-				length: len,
-			},
-		];
-	}
-
 	function handleNodeMouseDown({ detail }) {
 		draggingLink = {
 			from: {
@@ -403,7 +386,7 @@
 	}
 
 	function linkExists(a, b) {
-		return links.some(
+		return ls.some(
 			(l) =>
 				(l.from.componentId === a.componentId &&
 					l.from.side === a.side &&
@@ -425,13 +408,13 @@
 			draggingLink &&
 			!linkExists(draggingLink.from, hoveredNode)
 		) {
-			links = [
-				...links,
+			links.update((current) => [
+				...current,
 				{
 					from: draggingLink.from,
 					to: hoveredNode,
 				},
-			];
+			]);
 		}
 		draggingLink = null;
 		hoveredNode = null;
@@ -441,7 +424,7 @@
 	function updateLinkTableAndLinks() {
 		linkTable = {};
 		let changed = false;
-		links = links.map((link) => {
+		ls.map((link) => {
 			const fromPos = link.from.getNodeCenter();
 			const toPos = link.to.getNodeCenter();
 			if (!linkTable[link.from.componentId])
@@ -466,7 +449,7 @@
 			return link;
 		});
 		// Only trigger Svelte reactivity if changed
-		if (changed) links = [...links];
+		if (changed) links.update((link) => [...link]);
 	}
 
 	// Call this after any move or link change
@@ -474,8 +457,8 @@
 
 	function handleComponentMove(event) {
 		const { id, x, y } = event.detail;
-		components = components.map((comp) =>
-			comp.id === id ? { ...comp, x, y } : comp
+		components.update((comps) =>
+			comps.map((comp) => (comp.id === id ? { ...comp, x, y } : comp))
 		);
 		updateLinkTableAndLinks(); // Ensure links are updated immediately after move
 	}
@@ -720,7 +703,7 @@
 	}
 
 	// Helper to get endpoints and path for all links (reactive)
-	$: linkEndpoints = links.map((link) => {
+	$: linkEndpoints = ls.map((link) => {
 		const fromPos = link.from.getNodeCenter ? link.from.getNodeCenter() : null;
 		const toPos = link.to.getNodeCenter ? link.to.getNodeCenter() : null;
 		const fromSide = link.from.side;
@@ -750,7 +733,7 @@
 	});
 
 	// Force redraw when any component moves (by tracking all positions)
-	$: tick = components.map((c) => `${c.x},${c.y}`).join(";");
+	$: tick = comps.map((c) => `${c.x},${c.y}`).join(";");
 
 	function handleLinkClick(link, event) {
 		event.stopPropagation();
@@ -759,7 +742,7 @@
 
 	function deleteSelectedLink() {
 		if (selectedLink) {
-			links = links.filter((l) => l !== selectedLink);
+			ls = ls.filter((l) => l !== selectedLink);
 			selectedLink = null;
 		}
 	}
@@ -780,17 +763,28 @@
 	bind:this={svgContainer}
 	style="position:relative; width:100vw; height:100vh; background:#f8f8f8;"
 >
-	<button
-		on:click={addArrayComponent}
-		style="position:absolute; top:10px; left:10px; z-index:10;"
-	>
-		Add Array Component
-	</button>
+	<div class="menu">
+		<button on:click={addArrayComponent}> Add Array </button>
+		<button on:click={add2DTableComponent}> Add 2D Table </button>
+		<button on:click={addPointerComponent}> Add Pointer </button>
+		<!-- <button on:click={() => (usePathfinding = !usePathfinding)}>
+			{usePathfinding ? "Use Bezier" : "Use Pathfinding"}
+		</button> -->
+	</div>
 	<svg
 		style="position:absolute; left:0; top:0; width:100vw; height:100vh; pointer-events:none; z-index:1;"
 	>
 		{#each linkEndpoints as { fromPos, toPos, link, path } (link)}
 			{#if fromPos && toPos}
+				<!-- Thicker invisible path for easier selection -->
+				<path
+					d={path}
+					stroke="transparent"
+					stroke-width="16"
+					fill="none"
+					style="pointer-events:stroke"
+					on:click={(e) => handleLinkClick(link, e)}
+				/>
 				<path
 					d={path}
 					stroke={selectedLink === link ? "#d32f2f" : link.color}
@@ -836,13 +830,8 @@
 			{/if}
 		{/if}
 	</svg>
-	<button
-		on:click={() => (usePathfinding = !usePathfinding)}
-		style="position:absolute; top:10px; left:160px; z-index:10;"
-	>
-		{usePathfinding ? "Use Bezier" : "Use Pathfinding"}
-	</button>
-	{#each components as comp (comp.id)}
+
+	{#each comps as comp (comp.id)}
 		{#if comp.type === "array"}
 			<ArrayComponent
 				id={comp.id}
@@ -854,6 +843,40 @@
 				on:move={handleComponentMove}
 				on:redraw={() => {}}
 			/>
-		{/if}
+		{:else if comp.type === "2darray"}
+			<Table2DComponent
+				id={comp.id}
+				x={comp.x}
+				y={comp.y}
+				rows={comp.rows}
+				cols={comp.cols}
+				on:nodeMouseDown={handleNodeMouseDown}
+				{hoveredNode}
+				on:move={handleComponentMove}
+				on:redraw={() => {}}
+			/>
+		{:else if comp.type === "pointer"}
+			<PointerComponent
+				id={comp.id}
+				x={comp.x}
+				y={comp.y}
+				value={comp.value}
+				on:nodeMouseDown={handleNodeMouseDown}
+				{hoveredNode}
+				on:move={handleComponentMove}
+				on:redraw={() => {}}
+			/>{/if}
 	{/each}
 </div>
+
+<style>
+	.menu {
+		display: flex;
+		flex-direction: row;
+		position: absolute;
+		top: 10px;
+		left: 10px;
+		z-index: 10;
+		gap: 10px;
+	}
+</style>
