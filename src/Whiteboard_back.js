@@ -1,6 +1,6 @@
 import { writable } from "svelte/store";
 
-let nextId = 1;
+export let nextId = 3; // Start from 3 to account for the initial components
 
 export const components = writable([
 	{
@@ -72,7 +72,23 @@ export function addPointerComponent() {
 
 export function deleteComponent(id) {
 	components.update((comps) => comps.filter((c) => c.id !== id));
-	links.update((ls) =>
-		ls.filter((l) => l.from.componentId !== id && l.to.componentId !== id)
-	);
+	links.update((ls) => ls.filter((l) => l.from.componentId !== id && l.to.componentId !== id));
+}
+
+export function duplicateComponent(id) {
+	components.update((comps) => {
+		const original = comps.find((c) => c.id === id);
+		if (!original) return comps;
+
+		const copy = {
+			...original,
+			id: nextId++,
+			x: original.x + 20,
+			y: original.y + 20,
+		};
+
+		return [...comps, copy];
+	});
+
+	return nextId - 1; // Return the new component's id
 }

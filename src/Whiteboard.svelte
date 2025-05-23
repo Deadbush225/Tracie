@@ -3,7 +3,7 @@
 	import Table2DComponent from "../components/Table2DComponent.svelte";
 	import PointerComponent from "../components/PointerComponent.svelte";
 
-	import { components, links, addArrayComponent, add2DTableComponent, addPointerComponent } from "./Whiteboard_back";
+	import { components, links, addArrayComponent, add2DTableComponent, addPointerComponent, nextId, duplicateComponent } from "./Whiteboard_back";
 
 	import { onMount } from "svelte";
 
@@ -15,6 +15,9 @@
 
 	let hoveredNode = null;
 	let selectedLink = null;
+
+	// Add component selection functionality
+	let selectedComponentId = null;
 
 	$: comps = $components;
 	$: ls = $links;
@@ -624,6 +627,11 @@
 		}
 	}
 
+	function deleteComponent(id) {
+		components.update((current) => current.filter((comp) => comp.id !== id));
+		links.update((current) => current.filter((l) => l.from.componentId !== id && l.to.componentId !== id));
+	}
+
 	// Listen for delete key to remove selected link
 	onMount(() => {
 		const onKeyDown = (e) => {
@@ -634,9 +642,58 @@
 		window.addEventListener("keydown", onKeyDown);
 		return () => window.removeEventListener("keydown", onKeyDown);
 	});
+
+	// Listen for keyboard shortcuts (Ctrl+D to duplicate, Delete to remove)
+	function handleKeyDown(event) {
+		// Delete component/link
+		if (event.key === "Delete" || event.key === "Backspace") {
+			if (selectedLink) {
+				deleteSelectedLink();
+			} else if (selectedComponentId) {
+				deleteComponent(selectedComponentId);
+				selectedComponentId = null;
+			}
+		}
+
+		// Duplicate component with Ctrl+D
+		if (event.ctrlKey && event.key === "d" && selectedComponentId) {
+			event.preventDefault(); // Prevent browser bookmark
+			selectedComponentId = duplicateComponent(selectedComponentId);
+		}
+	}
+
+	onMount(() => {
+		updateSvgRect();
+		window.addEventListener("resize", updateSvgRect);
+		window.addEventListener("keydown", handleKeyDown);
+		return () => {
+			window.removeEventListener("resize", updateSvgRect);
+			window.removeEventListener("keydown", handleKeyDown);
+		};
+	});
+
+	function handleComponentClick(comp, event) {
+		console.log("Component clicked:", comp.id); // Add debug logging
+		// Only select if we're not working with links
+		if (draggingLink) {
+			return;
+		}
+
+		// Set this regardless of event target
+		selectedComponentId = comp.id;
+		// Make sure we stop propagation so the background click doesn't immediately deselect
+		event.stopPropagation();
+	}
+
+	// Background click to deselect
+	function handleBackgroundClick() {
+		console.log("Background clicked, deselecting"); // Add debug logging
+		selectedComponentId = null;
+		selectedLink = null;
+	}
 </script>
 
-<div bind:this={svgContainer} style="position:relative; width:100vw; height:100vh; background:#f8f8f8;">
+<div bind:this={svgContainer} style="position:relative; width:100vw; height:100vh; background:#f8f8f8;" on:click={handleBackgroundClick}>
 	<div class="menu">
 		<button on:click={addArrayComponent}> Add Array </button>
 		<button on:click={add2DTableComponent}> Add 2D Table </button>
@@ -689,11 +746,49 @@
 
 	{#each comps as comp (comp.id)}
 		{#if comp.type === "array"}
-			<ArrayComponent id={comp.id} x={comp.x} y={comp.y} length={comp.length} on:nodeMouseDown={handleNodeMouseDown} {hoveredNode} on:move={handleComponentMove} on:redraw={() => {}} />
+			<div on:click|stopPropagation={(e) => handleComponentClick(comp, e)} class="component-wrapper {selectedComponentId === comp.id ? 'selected-component-wrapper' : ''}">
+				<ArrayComponent
+					id={comp.id}
+					x={comp.x}
+					y={comp.y}
+					length={comp.length}
+					on:nodeMouseDown={handleNodeMouseDown}
+					{hoveredNode}
+					on:move={handleComponentMove}
+					on:redraw={() => {}}
+					class={selectedComponentId === comp.id ? "selected-component" : ""}
+				/>
+			</div>
 		{:else if comp.type === "2darray"}
-			<Table2DComponent id={comp.id} x={comp.x} y={comp.y} rows={comp.rows} cols={comp.cols} on:nodeMouseDown={handleNodeMouseDown} {hoveredNode} on:move={handleComponentMove} on:redraw={() => {}} />
+			<div on:click|stopPropagation={(e) => handleComponentClick(comp, e)} class="component-wrapper {selectedComponentId === comp.id ? 'selected-component-wrapper' : ''}">
+				<Table2DComponent
+					id={comp.id}
+					x={comp.x}
+					y={comp.y}
+					rows={comp.rows}
+					cols={comp.cols}
+					on:nodeMouseDown={handleNodeMouseDown}
+					{hoveredNode}
+					on:move={handleComponentMove}
+					on:redraw={() => {}}
+					class={selectedComponentId === comp.id ? "selected-component" : ""}
+				/>
+			</div>
 		{:else if comp.type === "pointer"}
-			<PointerComponent id={comp.id} x={comp.x} y={comp.y} value={comp.value} on:nodeMouseDown={handleNodeMouseDown} {hoveredNode} on:move={handleComponentMove} on:redraw={() => {}} />{/if}
+			<div on:click|stopPropagation={(e) => handleComponentClick(comp, e)} class="component-wrapper {selectedComponentId === comp.id ? 'selected-component-wrapper' : ''}">
+				<PointerComponent
+					id={comp.id}
+					x={comp.x}
+					y={comp.y}
+					value={comp.value}
+					on:nodeMouseDown={handleNodeMouseDown}
+					{hoveredNode}
+					on:move={handleComponentMove}
+					on:redraw={() => {}}
+					class={selectedComponentId === comp.id ? "selected-component" : ""}
+				/>
+			</div>
+		{/if}
 	{/each}
 </div>
 
@@ -706,5 +801,20 @@
 		left: 10px;
 		z-index: 10;
 		gap: 10px;
+	}
+
+	:global(.selected-component) {
+		outline: 2px solid #2196f3 !important;
+		outline-offset: 1px;
+		box-shadow: 0 0 12px rgba(33, 150, 243, 0.5) !important;
+	}
+
+	.component-wrapper {
+		position: relative;
+		cursor: pointer;
+	}
+
+	.selected-component-wrapper {
+		z-index: 2; /* Bring selected component to front */
 	}
 </style>
