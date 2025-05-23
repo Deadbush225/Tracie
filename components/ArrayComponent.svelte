@@ -5,7 +5,7 @@
 	export let length;
 	export let hoveredNode = null;
 
-	import { deleteComponent } from "../src/Whiteboard";
+	import { deleteComponent } from "../src/Whiteboard_back";
 	import { createEventDispatcher, onMount } from "svelte";
 	const dispatch = createEventDispatcher();
 	let container;
@@ -32,9 +32,11 @@
 			};
 			if (newPos.x !== pos.x || newPos.y !== pos.y) {
 				pos = newPos;
-				// Notify parent of new position
-				dispatch("move", { id, x: pos.x, y: pos.y });
-				dispatch("redraw"); // notify parent to force SVG update
+				// Only dispatch move if not dragging a row
+				if (draggingRow === null) {
+					dispatch("move", { id, x: pos.x, y: pos.y });
+					dispatch("redraw"); // notify parent to force SVG update
+				}
 			}
 		}
 	}
@@ -53,6 +55,17 @@
 	});
 
 	let data = Array(length).fill("");
+	$: if (data.length !== length) {
+		// Adjust data array if length prop changes
+		if (data.length < length) {
+			data = [...data, ...Array(length - data.length).fill("")];
+		} else {
+			data = data.slice(0, length);
+		}
+	}
+
+	// Row drag state
+	let draggingRow = null;
 
 	function getNodeCenter(side) {
 		const rect = container.getBoundingClientRect();
@@ -89,6 +102,64 @@
 	}
 	onMount(() => {
 		["top", "bottom", "left", "right"].forEach(registerNode);
+	});
+
+	// Replace drag state with mouse-based reordering state
+	let draggingColIndex = null;
+	let hoverColIndex = null;
+	let isReordering = false;
+
+	function handleColMouseDown(i, event) {
+		// Start column dragging/reordering
+		draggingColIndex = i;
+		hoverColIndex = i;
+		isReordering = true;
+		// Prevent component dragging when reordering columns
+		event.stopPropagation();
+	}
+
+	function handleColMouseMove(i) {
+		// Update hover target and perform reordering during drag
+		if (isReordering && draggingColIndex !== null && i !== draggingColIndex) {
+			hoverColIndex = i;
+
+			// Reorder the data array immediately on hover
+			const newData = [...data];
+
+			if (swap) {
+				// Swap the two values directly
+				[newData[draggingColIndex], newData[hoverColIndex]] = [newData[hoverColIndex], newData[draggingColIndex]];
+			} else {
+				// Remove and insert (original behavior)
+				const [moved] = newData.splice(draggingColIndex, 1);
+				newData.splice(hoverColIndex, 0, moved);
+			}
+
+			data = newData;
+			// Update draggingColIndex to follow the moved column
+			draggingColIndex = hoverColIndex;
+		}
+	}
+
+	// Add a property to control swap behavior
+	export let swap = true; // If true, swap elements; if false, insert
+
+	function handleColMouseUp() {
+		// Reset state
+		draggingColIndex = null;
+		hoverColIndex = null;
+		isReordering = false;
+	}
+
+	// Global mouse up handler to ensure reordering stops if mouse is released outside columns
+	onMount(() => {
+		// ...existing event listeners...
+
+		window.addEventListener("mouseup", handleColMouseUp);
+		return () => {
+			// ...existing removeEventListeners...
+			window.removeEventListener("mouseup", handleColMouseUp);
+		};
 	});
 </script>
 
@@ -156,7 +227,13 @@
 		<tbody>
 			<tr>
 				{#each Array(length) as _, i}
-					<td style="border:1px solid #888; padding:6px; background:#e3e3e3;">{i}</td>
+					<td
+						style="position:relative; border:1px solid #888; padding:6px; background:#e3e3e3; cursor:move; 
+							{draggingColIndex === i ? 'opacity:0.5;' : ''} 
+							{hoverColIndex === i && draggingColIndex !== null && isReordering ? 'outline:2px dashed #1976d2;' : ''}"
+						on:mousedown={(e) => handleColMouseDown(i, e)}
+						on:mousemove={() => handleColMouseMove(i)}>{i}</td
+					>
 				{/each}
 			</tr>
 			<tr>

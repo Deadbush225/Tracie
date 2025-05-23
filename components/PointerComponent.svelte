@@ -5,7 +5,7 @@
 	export let value = "";
 	export let hoveredNode = null;
 
-	import { deleteComponent } from "../src/Whiteboard";
+	import { deleteComponent } from "../src/Whiteboard_back";
 	import { createEventDispatcher, onMount } from "svelte";
 	const dispatch = createEventDispatcher();
 	let container;
@@ -96,16 +96,10 @@
 		: 'grab'}; padding:8px; min-width:200px;"
 	on:mousedown={handleMouseDown}
 >
-	<button on:click={() => deleteComponent(id)} class="delete-x" title="Delete">
-		×
-	</button>
+	<button on:click={() => deleteComponent(id)} class="delete-x" title="Delete"> × </button>
 	<!-- Nodes on all sides -->
 	<div
-		class="node {hoveredNode &&
-		hoveredNode.componentId === id &&
-		hoveredNode.side === 'top'
-			? 'node-hovered'
-			: ''}"
+		class="node {hoveredNode && hoveredNode.componentId === id && hoveredNode.side === 'top' ? 'node-hovered' : ''}"
 		data-comp-id={id}
 		data-side="top"
 		style="left:50%; top:-14px; transform:translateX(-50%);"
@@ -117,11 +111,7 @@
 			})}
 	/>
 	<div
-		class="node {hoveredNode &&
-		hoveredNode.componentId === id &&
-		hoveredNode.side === 'bottom'
-			? 'node-hovered'
-			: ''}"
+		class="node {hoveredNode && hoveredNode.componentId === id && hoveredNode.side === 'bottom' ? 'node-hovered' : ''}"
 		data-comp-id={id}
 		data-side="bottom"
 		style="left:50%; bottom:-14px; transform:translateX(-50%);"
@@ -133,11 +123,7 @@
 			})}
 	/>
 	<div
-		class="node {hoveredNode &&
-		hoveredNode.componentId === id &&
-		hoveredNode.side === 'left'
-			? 'node-hovered'
-			: ''}"
+		class="node {hoveredNode && hoveredNode.componentId === id && hoveredNode.side === 'left' ? 'node-hovered' : ''}"
 		data-comp-id={id}
 		data-side="left"
 		style="left:-14px; top:50%; transform:translateY(-50%);"
@@ -149,11 +135,7 @@
 			})}
 	/>
 	<div
-		class="node {hoveredNode &&
-		hoveredNode.componentId === id &&
-		hoveredNode.side === 'right'
-			? 'node-hovered'
-			: ''}"
+		class="node {hoveredNode && hoveredNode.componentId === id && hoveredNode.side === 'right' ? 'node-hovered' : ''}"
 		data-comp-id={id}
 		data-side="right"
 		style="right:-14px; top:50%; transform:translateY(-50%);"
@@ -166,12 +148,7 @@
 	/>
 
 	<!-- Editable line input -->
-	<input
-		type="text"
-		bind:value
-		style="width:100%; font-size:1.1em; border:none; outline:none; background:transparent; padding:4px;"
-		on:input={() => dispatch("edit", { id, value })}
-	/>
+	<input type="text" bind:value style="width:100%; font-size:1.1em; border:none; outline:none; background:transparent; padding:4px;" on:input={() => dispatch("edit", { id, value })} />
 </div>
 
 <style>

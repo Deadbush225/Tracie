@@ -3,14 +3,7 @@
 	import Table2DComponent from "../components/Table2DComponent.svelte";
 	import PointerComponent from "../components/PointerComponent.svelte";
 
-	import {
-		components,
-		links,
-		addArrayComponent,
-		add2DTableComponent,
-		addPointerComponent,
-		deleteComponent,
-	} from "./whiteboard";
+	import { components, links, addArrayComponent, add2DTableComponent, addPointerComponent } from "./Whiteboard_back";
 
 	import { onMount } from "svelte";
 
@@ -143,9 +136,7 @@
 			if (svg) {
 				// Remove previous debug grid cells
 				const prevGridCells = svg.querySelectorAll(".debug-grid-cell");
-				prevGridCells.forEach(
-					(r) => r.parentNode && r.parentNode.removeChild(r)
-				);
+				prevGridCells.forEach((r) => r.parentNode && r.parentNode.removeChild(r));
 
 				// Compute grid bounds
 				const minX = Math.min(startGrid.x, endGrid.x) - 10;
@@ -154,28 +145,19 @@
 				const maxY = Math.max(startGrid.y, endGrid.y) + 10;
 
 				function isCellBlocked(gx, gy) {
-					if (
-						(gx === startGrid.x && gy === startGrid.y) ||
-						(gx === endGrid.x && gy === endGrid.y)
-					) {
+					if ((gx === startGrid.x && gy === startGrid.y) || (gx === endGrid.x && gy === endGrid.y)) {
 						return false;
 					}
 					const px = gx * gridSize;
 					const py = gy * gridSize;
-					const blocked = boxes.some(
-						(b) =>
-							px >= b.left && px <= b.right && py >= b.top && py <= b.bottom
-					);
+					const blocked = boxes.some((b) => px >= b.left && px <= b.right && py >= b.top && py <= b.bottom);
 					return blocked;
 				}
 
 				for (let gx = minX; gx <= maxX; gx++) {
 					for (let gy = minY; gy <= maxY; gy++) {
 						const blocked = isCellBlocked(gx, gy);
-						const rect = document.createElementNS(
-							"http://www.w3.org/2000/svg",
-							"rect"
-						);
+						const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
 						rect.setAttribute("x", gx * gridSize);
 						rect.setAttribute("y", gy * gridSize);
 						rect.setAttribute("width", gridSize);
@@ -193,11 +175,7 @@
 		}
 		// --- END DEBUG ---
 
-		const overlapsBox = (pt) =>
-			boxes.some(
-				(b) =>
-					pt.x >= b.left && pt.x <= b.right && pt.y >= b.top && pt.y <= b.bottom
-			);
+		const overlapsBox = (pt) => boxes.some((b) => pt.x >= b.left && pt.x <= b.right && pt.y >= b.top && pt.y <= b.bottom);
 		if (overlapsBox(start) || overlapsBox(end)) {
 			return `M${start.x},${start.y} L${end.x},${end.y}`;
 		}
@@ -205,17 +183,12 @@
 		// --- Remove debug SVG drawing code for rectangles and grid cells ---
 
 		function isCellBlocked(gx, gy) {
-			if (
-				(gx === startGrid.x && gy === startGrid.y) ||
-				(gx === endGrid.x && gy === endGrid.y)
-			) {
+			if ((gx === startGrid.x && gy === startGrid.y) || (gx === endGrid.x && gy === endGrid.y)) {
 				return false;
 			}
 			const px = gx * gridSize;
 			const py = gy * gridSize;
-			const blocked = boxes.some(
-				(b) => px >= b.left && px <= b.right && py >= b.top && py <= b.bottom
-			);
+			const blocked = boxes.some((b) => px >= b.left && px <= b.right && py >= b.top && py <= b.bottom);
 			return blocked;
 		}
 
@@ -235,10 +208,7 @@
 		const fScore = {};
 		const key = (p) => `${p.x},${p.y}`;
 		gScore[key(startGrid)] = 0;
-		fScore[key(startGrid)] = Math.hypot(
-			startGrid.x - endGrid.x,
-			startGrid.y - endGrid.y
-		);
+		fScore[key(startGrid)] = Math.hypot(startGrid.x - endGrid.x, startGrid.y - endGrid.y);
 
 		open.push({ ...startGrid, f: fScore[key(startGrid)] });
 
@@ -278,16 +248,11 @@
 				const cost = dx === 0 || dy === 0 ? 1 : Math.SQRT2;
 				const tentative = currentScore + cost;
 
-				if (
-					tentative < (gScore[nKey] === undefined ? Infinity : gScore[nKey])
-				) {
+				if (tentative < (gScore[nKey] === undefined ? Infinity : gScore[nKey])) {
 					cameFrom[nKey] = current;
 					gScore[nKey] = tentative;
-					fScore[nKey] =
-						tentative +
-						Math.hypot(neighbor.x - endGrid.x, neighbor.y - endGrid.y);
-					if (!open.some((p) => p.x === neighbor.x && p.y === neighbor.y))
-						open.push({ ...neighbor, f: fScore[nKey] });
+					fScore[nKey] = tentative + Math.hypot(neighbor.x - endGrid.x, neighbor.y - endGrid.y);
+					if (!open.some((p) => p.x === neighbor.x && p.y === neighbor.y)) open.push({ ...neighbor, f: fScore[nKey] });
 				}
 			}
 		}
@@ -309,12 +274,7 @@
 					const curr = points[i];
 					const next = points[i + 1];
 					// If prev, curr, next are colinear (horizontal, vertical, or diagonal), skip curr
-					if (
-						(prev.x === curr.x && curr.x === next.x) ||
-						(prev.y === curr.y && curr.y === next.y) ||
-						(prev.x - curr.x) * (curr.y - next.y) ===
-							(prev.y - curr.y) * (curr.x - next.x)
-					) {
+					if ((prev.x === curr.x && curr.x === next.x) || (prev.y === curr.y && curr.y === next.y) || (prev.x - curr.x) * (curr.y - next.y) === (prev.y - curr.y) * (curr.x - next.x)) {
 						continue;
 					}
 					result.push(curr);
@@ -369,11 +329,7 @@
 		if (el && el.classList.contains("node")) {
 			const compId = +el.getAttribute("data-comp-id");
 			const side = el.getAttribute("data-side");
-			if (
-				compId !== draggingLink.from.componentId &&
-				window.__getNodeCenterMap &&
-				window.__getNodeCenterMap[`${compId}-${side}`]
-			) {
+			if (compId !== draggingLink.from.componentId && window.__getNodeCenterMap && window.__getNodeCenterMap[`${compId}-${side}`]) {
 				hoveredNode = {
 					componentId: compId,
 					side,
@@ -388,14 +344,8 @@
 	function linkExists(a, b) {
 		return ls.some(
 			(l) =>
-				(l.from.componentId === a.componentId &&
-					l.from.side === a.side &&
-					l.to.componentId === b.componentId &&
-					l.to.side === b.side) ||
-				(l.from.componentId === b.componentId &&
-					l.from.side === b.side &&
-					l.to.componentId === a.componentId &&
-					l.to.side === a.side)
+				(l.from.componentId === a.componentId && l.from.side === a.side && l.to.componentId === b.componentId && l.to.side === b.side) ||
+				(l.from.componentId === b.componentId && l.from.side === b.side && l.to.componentId === a.componentId && l.to.side === a.side)
 		);
 	}
 
@@ -403,11 +353,7 @@
 		window.removeEventListener("mousemove", handleMouseMove);
 		window.removeEventListener("mouseup", handleMouseUp);
 
-		if (
-			hoveredNode &&
-			draggingLink &&
-			!linkExists(draggingLink.from, hoveredNode)
-		) {
+		if (hoveredNode && draggingLink && !linkExists(draggingLink.from, hoveredNode)) {
 			links.update((current) => [
 				...current,
 				{
@@ -427,18 +373,12 @@
 		ls.map((link) => {
 			const fromPos = link.from.getNodeCenter();
 			const toPos = link.to.getNodeCenter();
-			if (!linkTable[link.from.componentId])
-				linkTable[link.from.componentId] = [];
+			if (!linkTable[link.from.componentId]) linkTable[link.from.componentId] = [];
 			if (!linkTable[link.to.componentId]) linkTable[link.to.componentId] = [];
 			linkTable[link.from.componentId].push(link);
 			linkTable[link.to.componentId].push(link);
 			// Only update if positions have changed
-			if (
-				link.from.x !== fromPos.x ||
-				link.from.y !== fromPos.y ||
-				link.to.x !== toPos.x ||
-				link.to.y !== toPos.y
-			) {
+			if (link.from.x !== fromPos.x || link.from.y !== fromPos.y || link.to.x !== toPos.x || link.to.y !== toPos.y) {
 				changed = true;
 				return {
 					...link,
@@ -457,9 +397,7 @@
 
 	function handleComponentMove(event) {
 		const { id, x, y } = event.detail;
-		components.update((comps) =>
-			comps.map((comp) => (comp.id === id ? { ...comp, x, y } : comp))
-		);
+		components.update((comps) => comps.map((comp) => (comp.id === id ? { ...comp, x, y } : comp)));
 		updateLinkTableAndLinks(); // Ensure links are updated immediately after move
 	}
 
@@ -484,43 +422,17 @@
 			const minY = Math.min(ya, yb),
 				maxY = Math.max(ya, yb);
 			// If both points are outside box in same direction, skip
-			if (
-				maxX < box.left - margin ||
-				minX > box.right + margin ||
-				maxY < box.top - margin ||
-				minY > box.bottom + margin
-			)
-				return false;
+			if (maxX < box.left - margin || minX > box.right + margin || maxY < box.top - margin || minY > box.bottom + margin) return false;
 			// Check for intersection with each box edge
 			const lines = [
 				// top
-				[
-					box.left - margin,
-					box.top - margin,
-					box.right + margin,
-					box.top - margin,
-				],
+				[box.left - margin, box.top - margin, box.right + margin, box.top - margin],
 				// bottom
-				[
-					box.left - margin,
-					box.bottom + margin,
-					box.right + margin,
-					box.bottom + margin,
-				],
+				[box.left - margin, box.bottom + margin, box.right + margin, box.bottom + margin],
 				// left
-				[
-					box.left - margin,
-					box.top - margin,
-					box.left - margin,
-					box.bottom + margin,
-				],
+				[box.left - margin, box.top - margin, box.left - margin, box.bottom + margin],
 				// right
-				[
-					box.right + margin,
-					box.top - margin,
-					box.right + margin,
-					box.bottom + margin,
-				],
+				[box.right + margin, box.top - margin, box.right + margin, box.bottom + margin],
 			];
 			for (const [x3, y3, x4, y4] of lines) {
 				if (segmentsIntersect(xa, ya, xb, yb, x3, y3, x4, y4)) return true;
@@ -545,10 +457,7 @@
 			function ccw(ax, ay, bx, by, cx, cy) {
 				return (cy - ay) * (bx - ax) > (by - ay) * (cx - ax);
 			}
-			return (
-				ccw(x1, y1, x3, y3, x4, y4) !== ccw(x2, y2, x3, y3, x4, y4) &&
-				ccw(x1, y1, x2, y2, x3, y3) !== ccw(x1, y1, x2, y2, x4, y4)
-			);
+			return ccw(x1, y1, x3, y3, x4, y4) !== ccw(x2, y2, x3, y3, x4, y4) && ccw(x1, y1, x2, y2, x3, y3) !== ccw(x1, y1, x2, y2, x4, y4);
 		}
 
 		function isBlocked(x, y, px, py) {
@@ -614,8 +523,7 @@
 				const nKey = key(neighbor);
 
 				// First step: must go in allowed direction from start
-				if (key(current) === key(start) && !allowedFirstStep(dx, dy, fromSide))
-					continue;
+				if (key(current) === key(start) && !allowedFirstStep(dx, dy, fromSide)) continue;
 
 				// Last step: must approach end from allowed direction
 				if (neighbor.x === end.x && neighbor.y === end.y) {
@@ -627,12 +535,8 @@
 				if (tentative < (gScore[nKey] || 99999)) {
 					cameFrom[nKey] = current;
 					gScore[nKey] = tentative;
-					fScore[nKey] =
-						tentative +
-						Math.abs(neighbor.x - end.x) +
-						Math.abs(neighbor.y - end.y);
-					if (!open.items.some((p) => p.x === neighbor.x && p.y === neighbor.y))
-						open.enqueue(neighbor, fScore[nKey]);
+					fScore[nKey] = tentative + Math.abs(neighbor.x - end.x) + Math.abs(neighbor.y - end.y);
+					if (!open.items.some((p) => p.x === neighbor.x && p.y === neighbor.y)) open.enqueue(neighbor, fScore[nKey]);
 				}
 			}
 		}
@@ -676,27 +580,9 @@
 		return `M${x1},${y1} C${c1x},${c1y} ${c2x},${c2y} ${x2},${y2}`;
 	}
 
-	function makeSmartOrBezierPath(
-		x1,
-		y1,
-		x2,
-		y2,
-		fromSide,
-		toSide,
-		fromId,
-		toId
-	) {
+	function makeSmartOrBezierPath(x1, y1, x2, y2, fromSide, toSide, fromId, toId) {
 		if (usePathfinding) {
-			return makeRectilinearPath(
-				x1,
-				y1,
-				x2,
-				y2,
-				fromSide,
-				toSide,
-				fromId,
-				toId
-			);
+			return makeRectilinearPath(x1, y1, x2, y2, fromSide, toSide, fromId, toId);
 		} else {
 			return makeBezierPath(x1, y1, x2, y2);
 		}
@@ -710,16 +596,7 @@
 		const toSide = link.to.side;
 		const path =
 			fromPos && toPos
-				? makeSmartOrBezierPath(
-						fromPos.x - svgRect.left,
-						fromPos.y - svgRect.top,
-						toPos.x - svgRect.left,
-						toPos.y - svgRect.top,
-						fromSide,
-						toSide,
-						link.from.componentId,
-						link.to.componentId
-					)
+				? makeSmartOrBezierPath(fromPos.x - svgRect.left, fromPos.y - svgRect.top, toPos.x - svgRect.left, toPos.y - svgRect.top, fromSide, toSide, link.from.componentId, link.to.componentId)
 				: "";
 		// Assign a random color if not already present
 		if (!link.color) {
@@ -742,7 +619,7 @@
 
 	function deleteSelectedLink() {
 		if (selectedLink) {
-			ls = ls.filter((l) => l !== selectedLink);
+			links.update((current) => current.filter((l) => l !== selectedLink));
 			selectedLink = null;
 		}
 	}
@@ -759,10 +636,7 @@
 	});
 </script>
 
-<div
-	bind:this={svgContainer}
-	style="position:relative; width:100vw; height:100vh; background:#f8f8f8;"
->
+<div bind:this={svgContainer} style="position:relative; width:100vw; height:100vh; background:#f8f8f8;">
 	<div class="menu">
 		<button on:click={addArrayComponent}> Add Array </button>
 		<button on:click={add2DTableComponent}> Add 2D Table </button>
@@ -771,20 +645,11 @@
 			{usePathfinding ? "Use Bezier" : "Use Pathfinding"}
 		</button> -->
 	</div>
-	<svg
-		style="position:absolute; left:0; top:0; width:100vw; height:100vh; pointer-events:none; z-index:1;"
-	>
+	<svg style="position:absolute; left:0; top:0; width:100vw; height:100vh; pointer-events:none; z-index:1;">
 		{#each linkEndpoints as { fromPos, toPos, link, path } (link)}
 			{#if fromPos && toPos}
 				<!-- Thicker invisible path for easier selection -->
-				<path
-					d={path}
-					stroke="transparent"
-					stroke-width="16"
-					fill="none"
-					style="pointer-events:stroke"
-					on:click={(e) => handleLinkClick(link, e)}
-				/>
+				<path d={path} stroke="transparent" stroke-width="16" fill="none" style="pointer-events:stroke" on:click={(e) => handleLinkClick(link, e)} />
 				<path
 					d={path}
 					stroke={selectedLink === link ? "#d32f2f" : link.color}
@@ -817,55 +682,18 @@
 				/>
 			{:else}
 				<!-- Show temp dashed line from node to mouse -->
-				<line
-					x1={fromPos.x - svgRect.left}
-					y1={fromPos.y - svgRect.top}
-					x2={mouse.x - svgRect.left}
-					y2={mouse.y - svgRect.top}
-					stroke="#1976d2"
-					stroke-width="2"
-					stroke-dasharray="6,6"
-					fill="none"
-				/>
+				<line x1={fromPos.x - svgRect.left} y1={fromPos.y - svgRect.top} x2={mouse.x - svgRect.left} y2={mouse.y - svgRect.top} stroke="#1976d2" stroke-width="2" stroke-dasharray="6,6" fill="none" />
 			{/if}
 		{/if}
 	</svg>
 
 	{#each comps as comp (comp.id)}
 		{#if comp.type === "array"}
-			<ArrayComponent
-				id={comp.id}
-				x={comp.x}
-				y={comp.y}
-				length={comp.length}
-				on:nodeMouseDown={handleNodeMouseDown}
-				{hoveredNode}
-				on:move={handleComponentMove}
-				on:redraw={() => {}}
-			/>
+			<ArrayComponent id={comp.id} x={comp.x} y={comp.y} length={comp.length} on:nodeMouseDown={handleNodeMouseDown} {hoveredNode} on:move={handleComponentMove} on:redraw={() => {}} />
 		{:else if comp.type === "2darray"}
-			<Table2DComponent
-				id={comp.id}
-				x={comp.x}
-				y={comp.y}
-				rows={comp.rows}
-				cols={comp.cols}
-				on:nodeMouseDown={handleNodeMouseDown}
-				{hoveredNode}
-				on:move={handleComponentMove}
-				on:redraw={() => {}}
-			/>
+			<Table2DComponent id={comp.id} x={comp.x} y={comp.y} rows={comp.rows} cols={comp.cols} on:nodeMouseDown={handleNodeMouseDown} {hoveredNode} on:move={handleComponentMove} on:redraw={() => {}} />
 		{:else if comp.type === "pointer"}
-			<PointerComponent
-				id={comp.id}
-				x={comp.x}
-				y={comp.y}
-				value={comp.value}
-				on:nodeMouseDown={handleNodeMouseDown}
-				{hoveredNode}
-				on:move={handleComponentMove}
-				on:redraw={() => {}}
-			/>{/if}
+			<PointerComponent id={comp.id} x={comp.x} y={comp.y} value={comp.value} on:nodeMouseDown={handleNodeMouseDown} {hoveredNode} on:move={handleComponentMove} on:redraw={() => {}} />{/if}
 	{/each}
 </div>
 
