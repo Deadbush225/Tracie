@@ -3,7 +3,23 @@
 	import Table2DComponent from "../components/Table2DComponent.svelte";
 	import PointerComponent from "../components/PointerComponent.svelte";
 
-	import { components, links, addArrayComponent, add2DTableComponent, addPointerComponent, nextId, duplicateComponent } from "./Whiteboard_back";
+	import {
+		components,
+		links,
+		addArrayComponent,
+		add2DTableComponent,
+		addPointerComponent,
+		nextId,
+		duplicateComponent,
+		createLink,
+		deleteLink,
+		deleteComponent,
+		moveComponent,
+		moveMultipleComponents,
+		undo,
+		redo,
+		commandHistory,
+	} from "./Whiteboard_back";
 
 	import { onMount } from "svelte";
 
@@ -360,13 +376,8 @@
 		window.removeEventListener("mouseup", handleMouseUp);
 
 		if (hoveredNode && draggingLink && !linkExists(draggingLink.from, hoveredNode)) {
-			links.update((current) => [
-				...current,
-				{
-					from: draggingLink.from,
-					to: hoveredNode,
-				},
-			]);
+			// Create the link using the command system
+			createLink(draggingLink.from, hoveredNode);
 		}
 		draggingLink = null;
 		hoveredNode = null;
@@ -402,9 +413,38 @@
 	$: updateLinkTableAndLinks();
 
 	function handleComponentMove(event) {
-		const { id, x, y } = event.detail;
-		components.update((comps) => comps.map((comp) => (comp.id === id ? { ...comp, x, y } : comp)));
-		updateLinkTableAndLinks(); // Ensure links are updated immediately after move
+		const { id, dx, dy, final } = event.detail;
+
+		// Problem: There's duplicate movement happening because:
+		// 1. The component already updated its own position
+		// 2. We're applying the delta again to the component here
+
+		if (final) {
+			// Only record history on final move (mouse up)
+			if (selectedComponentIds.length > 1 && selectedComponentIds.includes(id)) {
+				// For multi-selection, use the totalDx/totalDy for history
+				moveMultipleComponents(selectedComponentIds, event.detail.totalDx, event.detail.totalDy);
+			} else {
+				// For single component, use the totalDx/totalDy for history
+				moveComponent(id, event.detail.totalDx, event.detail.totalDy);
+			}
+		} else {
+			// During drag, we should NOT update positions again - components already updated themselves
+			// Let's update only OTHER selected components that need to move together
+			if (selectedComponentIds.length > 1 && selectedComponentIds.includes(id)) {
+				components.update((comps) =>
+					comps.map((comp) => {
+						// Only update OTHER selected components, not the one being dragged
+						if (selectedComponentIds.includes(comp.id) && comp.id !== id) {
+							return { ...comp, x: comp.x + dx, y: comp.y + dy };
+						}
+						return comp;
+					})
+				);
+			}
+		}
+
+		updateLinkTableAndLinks(); // Ensure links are updated immediately
 	}
 
 	let usePathfinding = false; // Toggle for pathfinding vs bezier
@@ -480,16 +520,19 @@
 
 	function deleteSelectedLinks() {
 		if (selectedLinks.length > 0) {
-			links.update((current) => current.filter((link) => !selectedLinks.includes(link)));
+			// Delete each link individually to track in history
+			for (const link of selectedLinks) {
+				deleteLink(link);
+			}
 			selectedLinks = [];
 			selectedLink = null;
 		}
 	}
 
-	function deleteComponent(id) {
-		components.update((current) => current.filter((comp) => comp.id !== id));
-		links.update((current) => current.filter((l) => l.from.componentId !== id && l.to.componentId !== id));
-	}
+	// function deleteComponent(id) {
+	// 	components.update((current) => current.filter((comp) => comp.id !== id));
+	// 	links.update((current) => current.filter((l) => l.from.componentId !== id && l.to.componentId !== id));
+	// }
 
 	// Listen for delete key to remove selected link
 	onMount(() => {
@@ -588,7 +631,28 @@
 			event.preventDefault();
 			selectedComponentIds = comps.map((comp) => comp.id);
 		}
+
+		// Undo with Ctrl+Z
+		if (event.ctrlKey && event.key === "z") {
+			event.preventDefault();
+			undo();
+		}
+
+		// Redo with Ctrl+Y or Ctrl+Shift+Z
+		if ((event.ctrlKey && event.key === "y") || (event.ctrlKey && event.shiftKey && event.key === "z")) {
+			event.preventDefault();
+			redo();
+		}
 	}
+
+	// Subscribe to command history changes to enable/disable undo/redo buttons
+	let canUndo = false;
+	let canRedo = false;
+
+	commandHistory.subscribe((h) => {
+		canUndo = h.undoStack.length > 0;
+		canRedo = h.redoStack.length > 0;
+	});
 
 	onMount(() => {
 		updateSvgRect();
@@ -601,8 +665,8 @@
 	});
 
 	function handleComponentClick(comp, event) {
-		console.log("Component clicked:", comp.id); // Add debug logging
-		// Only select if we're not working with links
+		console.log("Component clicked:", comp.id);
+		// Don't select if we're dragging a link
 		if (draggingLink) {
 			return;
 		}
@@ -616,14 +680,28 @@
 				// Add to selection
 				selectedComponentIds = [...selectedComponentIds, comp.id];
 			}
-		} else {
-			// Single selection (replace current selection)
+		} else if (!selectedComponentIds.includes(comp.id)) {
+			// Only replace selection if clicking on an unselected component
 			selectedComponentIds = [comp.id];
 		}
 
-		// Make sure we stop propagation so the background click doesn't immediately deselect
+		// Always stop propagation to prevent background deselection
 		event.stopPropagation();
 	}
+
+	// This function will start the group drag operation
+	function handleMouseDownOnComponent(comp, event) {
+		console.log("Mouse down on component:", comp.id);
+
+		// Only start group drag if clicking on a selected component
+		if (selectedComponentIds.includes(comp.id)) {
+			handleGroupDragStart(event);
+		}
+
+		// Stop propagation to prevent the background selection box
+		event.stopPropagation();
+	}
+
 	// Selection box visualizer (add it to the relative position container)
 	$: {
 		if (selectedComponentIds.length > 0) {
@@ -682,6 +760,7 @@
 			const dx = event.clientX - groupDragStart.x;
 			const dy = event.clientY - groupDragStart.y;
 
+			// Update UI directly during drag for better performance
 			components.update((current) =>
 				current.map((comp) => {
 					if (selectedComponentIds.includes(comp.id)) {
@@ -698,8 +777,18 @@
 		}
 	}
 
-	function handleGroupDragEnd() {
-		isDraggingGroup = false;
+	function handleGroupDragEnd(event) {
+		if (isDraggingGroup) {
+			const dx = event.clientX - groupDragStart.x;
+			const dy = event.clientY - groupDragStart.y;
+
+			// Only add to history when the drag ends and there was actual movement
+			if (dx !== 0 || dy !== 0) {
+				moveMultipleComponents(selectedComponentIds, dx, dy);
+			}
+
+			isDraggingGroup = false;
+		}
 	}
 
 	// Background click to deselect
@@ -782,17 +871,29 @@
 	style="position:relative; width:100vw; height:100vh; background:#f8f8f8;"
 	on:click={handleBackgroundClick}
 	on:mousedown={handleSelectionStart}
-	on:mousemove={handleSelectionMove}
-	on:mouseup={handleSelectionEnd}
+	on:mousemove={(e) => {
+		handleSelectionMove(e);
+		handleGroupDragMove(e);
+	}}
+	on:mouseup={(e) => {
+		handleSelectionEnd(e);
+		handleGroupDragEnd();
+	}}
 >
 	<div class="menu">
-		<button on:click={addArrayComponent}> Add Array </button>
-		<button on:click={add2DTableComponent}> Add 2D Table </button>
-		<button on:click={addPointerComponent}> Add Pointer </button>
-		<!-- <button on:click={() => (usePathfinding = !usePathfinding)}>
-			{usePathfinding ? "Use Bezier" : "Use Pathfinding"}
-		</button> -->
+		<button on:click={addArrayComponent}>Add Array</button>
+		<button on:click={add2DTableComponent}>Add 2D Table</button>
+		<button on:click={addPointerComponent}>Add Pointer</button>
+		<div style="width: 20px;"></div>
+		<!-- Spacer -->
+		<button on:click={undo} disabled={!canUndo} title="Undo (Ctrl+Z)">
+			<span class="material-icons">undo</span>
+		</button>
+		<button on:click={redo} disabled={!canRedo} title="Redo (Ctrl+Y)">
+			<span class="material-icons">redo</span>
+		</button>
 	</div>
+
 	<!-- Link rendering with selection highlighting -->
 	<svg style="position:absolute; left:0; top:0; width:100vw; height:100vh; pointer-events:none; z-index:1;">
 		{#each linkEndpoints as { fromPos, toPos, link, path } (link)}
@@ -842,9 +943,13 @@
 		<div class="selection-box" style="position:absolute; left:{selectionBox.x}px; top:{selectionBox.y}px; width:{selectionBox.width}px; height:{selectionBox.height}px;"></div>
 	{/if}
 
+	<!-- Add the group selection box element -->
+	<div class="group-selection-box"></div>
+
 	{#each comps as comp (comp.id)}
 		{#if comp.type === "array"}
-			<div on:click|stopPropagation={(e) => handleComponentClick(comp, e)}>
+			<!-- Wrap ArrayComponent so we can handle clicks but not interfere with component's own dragging -->
+			<div on:mousedown={(e) => handleComponentClick(comp, e)}>
 				<ArrayComponent
 					id={comp.id}
 					x={comp.x}
@@ -858,7 +963,7 @@
 				/>
 			</div>
 		{:else if comp.type === "2darray"}
-			<div on:click|stopPropagation={(e) => handleComponentClick(comp, e)}>
+			<div on:mousedown={(e) => handleComponentClick(comp, e)}>
 				<Table2DComponent
 					id={comp.id}
 					x={comp.x}
@@ -873,7 +978,7 @@
 				/>
 			</div>
 		{:else if comp.type === "pointer"}
-			<div on:click|stopPropagation={(e) => handleComponentClick(comp, e)}>
+			<div on:mousedown={(e) => handleComponentClick(comp, e)}>
 				<PointerComponent
 					id={comp.id}
 					x={comp.x}
@@ -912,14 +1017,30 @@
 		cursor: pointer;
 	}
 
-	.selected-component-wrapper {
-		z-index: 2; /* Bring selected component to front */
-	}
-
 	.selection-box {
 		border: 1px dashed #2196f3;
 		background: rgba(33, 150, 243, 0.1);
 		pointer-events: none;
 		z-index: 3;
+	}
+
+	button:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.material-icons {
+		font-family: "Material Icons";
+		font-weight: normal;
+		font-style: normal;
+		font-size: 24px;
+		line-height: 1;
+		letter-spacing: normal;
+		text-transform: none;
+		display: inline-block;
+		white-space: nowrap;
+		word-wrap: normal;
+		direction: ltr;
+		-webkit-font-smoothing: antialiased;
 	}
 </style>

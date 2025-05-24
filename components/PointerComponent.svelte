@@ -16,13 +16,24 @@
 	let dragging = false;
 	let offset = { x: 0, y: 0 };
 
+	// Track total movement for history
+	let startPos = { x: 0, y: 0 };
+	let totalDx = 0;
+	let totalDy = 0;
+
 	function handleMouseDown(event) {
-		dragging = true;
-		offset = {
-			x: event.clientX - pos.x,
-			y: event.clientY - pos.y,
-		};
-		event.stopPropagation();
+		if (event.currentTarget === event.target) {
+			dragging = true;
+			offset = {
+				x: event.clientX - pos.x,
+				y: event.clientY - pos.y,
+			};
+
+			// Save starting position for tracking total movement
+			startPos = { x: pos.x, y: pos.y };
+			totalDx = 0;
+			totalDy = 0;
+		}
 	}
 
 	function handleMouseMove(event) {
@@ -31,16 +42,31 @@
 				x: event.clientX - offset.x,
 				y: event.clientY - offset.y,
 			};
+
 			if (newPos.x !== pos.x || newPos.y !== pos.y) {
+				// Calculate the delta movement for this frame
+				const dx = newPos.x - pos.x;
+				const dy = newPos.y - pos.y;
+
+				// Update total movement
+				totalDx += dx;
+				totalDy += dy;
+
 				pos = newPos;
-				dispatch("move", { id, x: pos.x, y: pos.y });
+
+				// Include delta in the event detail with final=false
+				dispatch("move", { id, dx, dy, totalDx, totalDy, final: false });
 				dispatch("redraw");
 			}
 		}
 	}
 
 	function handleMouseUp() {
-		dragging = false;
+		if (dragging) {
+			// When releasing, dispatch final position with total movement
+			dispatch("move", { id, dx: 0, dy: 0, totalDx, totalDy, final: true });
+			dragging = false;
+		}
 	}
 
 	onMount(() => {
@@ -97,6 +123,7 @@
 		? 'grabbing'
 		: 'grab'}; padding:8px; min-width:200px;"
 	on:mousedown={handleMouseDown}
+	on:click|stopPropagation
 >
 	<button on:click={() => deleteComponent(id)} class="delete-x" title="Delete"> × </button>
 	<!-- Nodes on all sides -->
