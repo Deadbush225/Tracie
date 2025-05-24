@@ -19,15 +19,19 @@
 		undo,
 		redo,
 		commandHistory,
+		makeSmartOrBezierPath,
+		linkEndpoints,
+		updateLinks,
 	} from "./Whiteboard_back";
 
 	import { onMount } from "svelte";
+	import { updateSvgRect2, svgRect } from "./ui_store";
 
 	let linkingFrom = null;
 	let draggingLink = null;
 	let mouse = { x: 0, y: 0 };
 	let svgContainer;
-	let svgRect = { left: 0, top: 0 };
+	// let svgRect = { left: 0, top: 0 };
 
 	let hoveredNode = null;
 
@@ -40,9 +44,6 @@
 
 	$: comps = $components;
 	$: ls = $links;
-
-	// Table of link endpoints by component id for fast update
-	let linkTable = {};
 
 	// Helper to get a component's bounding box by id
 	function getComponentBox(id) {
@@ -72,253 +73,6 @@
 			.filter((b) => b.left !== undefined && b.top !== undefined);
 	}
 
-	// Rectilinear path that avoids overlapping any component boundary box, with any number of corners
-	function makeRectilinearPath(x1, y1, x2, y2, fromSide, toSide, fromId, toId) {
-		const gridSize = 8;
-		const margin = 7;
-		const boundary = 15;
-
-		const fromBox = getComponentBox(fromId);
-		const toBox = getComponentBox(toId);
-
-		let start = { x: x1, y: y1 };
-		let end = { x: x2, y: y2 };
-
-		if (fromBox) {
-			switch (fromSide) {
-				case "top":
-					start = { x: fromBox.centerX, y: fromBox.top - boundary };
-					break;
-				case "bottom":
-					start = { x: fromBox.centerX, y: fromBox.bottom + boundary };
-					break;
-				case "left":
-					start = { x: fromBox.left - boundary, y: fromBox.centerY };
-					break;
-				case "right":
-					start = { x: fromBox.right + boundary, y: fromBox.centerY };
-					break;
-			}
-		}
-		if (toBox) {
-			switch (toSide) {
-				case "top":
-					end = { x: toBox.centerX, y: toBox.top - boundary };
-					break;
-				case "bottom":
-					end = { x: toBox.centerX, y: toBox.bottom + boundary };
-					break;
-				case "left":
-					end = { x: toBox.left - boundary, y: toBox.centerY };
-					break;
-				case "right":
-					end = { x: toBox.right + boundary, y: toBox.centerY };
-					break;
-			}
-		}
-
-		function moveOutsideBoundary(pt, box, side) {
-			if (!box) return pt;
-			switch (side) {
-				case "top":
-					return { x: box.centerX, y: box.top - boundary - 15 };
-				case "bottom":
-					return { x: box.centerX, y: box.bottom + boundary + 15 };
-				case "left":
-					return { x: box.left - boundary - 15, y: box.centerY };
-				case "right":
-					return { x: box.right + boundary + 15, y: box.centerY };
-				default:
-					return pt;
-			}
-		}
-		if (fromBox) start = moveOutsideBoundary(start, fromBox, fromSide);
-		if (toBox) end = moveOutsideBoundary(end, toBox, toSide);
-
-		const startGrid = {
-			x: Math.round(start.x / gridSize),
-			y: Math.round(start.y / gridSize),
-		};
-		const endGrid = {
-			x: Math.round(end.x / gridSize),
-			y: Math.round(end.y / gridSize),
-		};
-
-		const boxes = getAllComponentBoxes([]).map((b) => ({
-			...b,
-			left: b.left - boundary,
-			right: b.right + boundary,
-			top: b.top - boundary,
-			bottom: b.bottom + boundary,
-		}));
-
-		// --- DEBUG: Draw blocked grid cells temporarily ---
-		{
-			const svg = document.querySelector("svg");
-			if (svg) {
-				// Remove previous debug grid cells
-				const prevGridCells = svg.querySelectorAll(".debug-grid-cell");
-				prevGridCells.forEach((r) => r.parentNode && r.parentNode.removeChild(r));
-
-				// Compute grid bounds
-				const minX = Math.min(startGrid.x, endGrid.x) - 10;
-				const maxX = Math.max(startGrid.x, endGrid.x) + 10;
-				const minY = Math.min(startGrid.y, endGrid.y) - 10;
-				const maxY = Math.max(startGrid.y, endGrid.y) + 10;
-
-				function isCellBlocked(gx, gy) {
-					if ((gx === startGrid.x && gy === startGrid.y) || (gx === endGrid.x && gy === endGrid.y)) {
-						return false;
-					}
-					const px = gx * gridSize;
-					const py = gy * gridSize;
-					const blocked = boxes.some((b) => px >= b.left && px <= b.right && py >= b.top && py <= b.bottom);
-					return blocked;
-				}
-
-				for (let gx = minX; gx <= maxX; gx++) {
-					for (let gy = minY; gy <= maxY; gy++) {
-						const blocked = isCellBlocked(gx, gy);
-						const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-						rect.setAttribute("x", gx * gridSize);
-						rect.setAttribute("y", gy * gridSize);
-						rect.setAttribute("width", gridSize);
-						rect.setAttribute("height", gridSize);
-						rect.setAttribute("fill", blocked ? "#f44336" : "#4caf50");
-						rect.setAttribute("fill-opacity", blocked ? "0.18" : "0.08");
-						rect.setAttribute("stroke", blocked ? "#f44336" : "#4caf50");
-						rect.setAttribute("stroke-width", "0.5");
-						rect.setAttribute("class", "debug-grid-cell");
-						rect.setAttribute("pointer-events", "none");
-						svg.appendChild(rect);
-					}
-				}
-			}
-		}
-		// --- END DEBUG ---
-
-		const overlapsBox = (pt) => boxes.some((b) => pt.x >= b.left && pt.x <= b.right && pt.y >= b.top && pt.y <= b.bottom);
-		if (overlapsBox(start) || overlapsBox(end)) {
-			return `M${start.x},${start.y} L${end.x},${end.y}`;
-		}
-
-		// --- Remove debug SVG drawing code for rectangles and grid cells ---
-
-		function isCellBlocked(gx, gy) {
-			if ((gx === startGrid.x && gy === startGrid.y) || (gx === endGrid.x && gy === endGrid.y)) {
-				return false;
-			}
-			const px = gx * gridSize;
-			const py = gy * gridSize;
-			const blocked = boxes.some((b) => px >= b.left && px <= b.right && py >= b.top && py <= b.bottom);
-			return blocked;
-		}
-
-		function allowedFirstStep(dx, dy, side) {
-			// Allow any direction for diagonal pathfinding
-			return true;
-		}
-		function allowedLastStep(prev, curr, side) {
-			// Allow any direction for diagonal pathfinding
-			return true;
-		}
-
-		// 8-directional A* (diagonal allowed)
-		const open = [];
-		const cameFrom = {};
-		const gScore = {};
-		const fScore = {};
-		const key = (p) => `${p.x},${p.y}`;
-		gScore[key(startGrid)] = 0;
-		fScore[key(startGrid)] = Math.hypot(startGrid.x - endGrid.x, startGrid.y - endGrid.y);
-
-		open.push({ ...startGrid, f: fScore[key(startGrid)] });
-
-		let found = false;
-		let steps = 0;
-		const maxSteps = 10000;
-		const directions = [
-			{ dx: 1, dy: 0 },
-			{ dx: -1, dy: 0 },
-			{ dx: 0, dy: 1 },
-			{ dx: 0, dy: -1 },
-			{ dx: 1, dy: 1 },
-			{ dx: 1, dy: -1 },
-			{ dx: -1, dy: 1 },
-			{ dx: -1, dy: -1 },
-		];
-		const visited = {};
-
-		while (open.length && steps++ < maxSteps) {
-			open.sort((a, b) => a.f - b.f);
-			const current = open.shift();
-			visited[key(current)] = true;
-			if (current.x === endGrid.x && current.y === endGrid.y) {
-				found = true;
-				break;
-			}
-			for (const { dx, dy } of directions) {
-				const neighbor = { x: current.x + dx, y: current.y + dy };
-				const nKey = key(neighbor);
-
-				if (visited[nKey]) continue;
-				if (isCellBlocked(neighbor.x, neighbor.y)) continue;
-
-				const currentScore = gScore[key(current)];
-				if (currentScore === undefined) continue;
-
-				const cost = dx === 0 || dy === 0 ? 1 : Math.SQRT2;
-				const tentative = currentScore + cost;
-
-				if (tentative < (gScore[nKey] === undefined ? Infinity : gScore[nKey])) {
-					cameFrom[nKey] = current;
-					gScore[nKey] = tentative;
-					fScore[nKey] = tentative + Math.hypot(neighbor.x - endGrid.x, neighbor.y - endGrid.y);
-					if (!open.some((p) => p.x === neighbor.x && p.y === neighbor.y)) open.push({ ...neighbor, f: fScore[nKey] });
-				}
-			}
-		}
-		let path = [];
-		if (found) {
-			let curr = endGrid;
-			while (curr && (curr.x !== startGrid.x || curr.y !== startGrid.y)) {
-				path.push({ x: curr.x * gridSize, y: curr.y * gridSize });
-				curr = cameFrom[key(curr)];
-			}
-			path.push({ x: startGrid.x * gridSize, y: startGrid.y * gridSize });
-			path.reverse();
-
-			function simplifyColinear(points) {
-				if (points.length < 3) return points;
-				const result = [points[0]];
-				for (let i = 1; i < points.length - 1; i++) {
-					const prev = result[result.length - 1];
-					const curr = points[i];
-					const next = points[i + 1];
-					// If prev, curr, next are colinear (horizontal, vertical, or diagonal), skip curr
-					if ((prev.x === curr.x && curr.x === next.x) || (prev.y === curr.y && curr.y === next.y) || (prev.x - curr.x) * (curr.y - next.y) === (prev.y - curr.y) * (curr.x - next.x)) {
-						continue;
-					}
-					result.push(curr);
-				}
-				result.push(points[points.length - 1]);
-				return result;
-			}
-			path = simplifyColinear(path);
-		} else {
-			path = [
-				{ x: start.x, y: start.y },
-				{ x: end.x, y: end.y },
-			];
-		}
-
-		let d = `M${path[0].x},${path[0].y}`;
-		for (let i = 1; i < path.length; i++) {
-			d += ` L${path[i].x},${path[i].y}`;
-		}
-		return d;
-	}
-
 	onMount(() => {
 		updateSvgRect();
 		window.addEventListener("resize", updateSvgRect);
@@ -326,10 +80,7 @@
 	});
 
 	function updateSvgRect() {
-		if (svgContainer) {
-			const rect = svgContainer.getBoundingClientRect();
-			svgRect = { left: rect.left, top: rect.top };
-		}
+		updateSvgRect2(svgContainer);
 	}
 
 	function handleNodeMouseDown({ detail }) {
@@ -383,34 +134,8 @@
 		hoveredNode = null;
 	}
 
-	// Helper to update linkTable and links array with new positions
-	function updateLinkTableAndLinks() {
-		linkTable = {};
-		let changed = false;
-		ls.map((link) => {
-			const fromPos = link.from.getNodeCenter();
-			const toPos = link.to.getNodeCenter();
-			if (!linkTable[link.from.componentId]) linkTable[link.from.componentId] = [];
-			if (!linkTable[link.to.componentId]) linkTable[link.to.componentId] = [];
-			linkTable[link.from.componentId].push(link);
-			linkTable[link.to.componentId].push(link);
-			// Only update if positions have changed
-			if (link.from.x !== fromPos.x || link.from.y !== fromPos.y || link.to.x !== toPos.x || link.to.y !== toPos.y) {
-				changed = true;
-				return {
-					...link,
-					from: { ...link.from, x: fromPos.x, y: fromPos.y },
-					to: { ...link.to, x: toPos.x, y: toPos.y },
-				};
-			}
-			return link;
-		});
-		// Only trigger Svelte reactivity if changed
-		if (changed) links.update((link) => [...link]);
-	}
-
 	// Call this after any move or link change
-	$: updateLinkTableAndLinks();
+	// $: updateLinkTableAndLinks();
 
 	function handleComponentMove(event) {
 		const { id, dx, dy, final } = event.detail;
@@ -444,49 +169,10 @@
 			}
 		}
 
-		updateLinkTableAndLinks(); // Ensure links are updated immediately
-	}
-
-	let usePathfinding = false; // Toggle for pathfinding vs bezier
-
-	function makeBezierPath(x1, y1, x2, y2) {
-		const dx = Math.abs(x2 - x1);
-		const dy = Math.abs(y2 - y1);
-		const c1x = x1 + (dx > dy ? dx / 2 : 0);
-		const c1y = y1 + (dx > dy ? 0 : dy / 2);
-		const c2x = x2 - (dx > dy ? dx / 2 : 0);
-		const c2y = y2 - (dx > dy ? 0 : dy / 2);
-		return `M${x1},${y1} C${c1x},${c1y} ${c2x},${c2y} ${x2},${y2}`;
-	}
-
-	function makeSmartOrBezierPath(x1, y1, x2, y2, fromSide, toSide, fromId, toId) {
-		if (usePathfinding) {
-			return makeRectilinearPath(x1, y1, x2, y2, fromSide, toSide, fromId, toId);
-		} else {
-			return makeBezierPath(x1, y1, x2, y2);
-		}
+		updateLinks(); // Ensure links are updated immediately
 	}
 
 	// Helper to get endpoints and path for all links (reactive)
-	$: linkEndpoints = ls.map((link) => {
-		const fromPos = link.from.getNodeCenter ? link.from.getNodeCenter() : null;
-		const toPos = link.to.getNodeCenter ? link.to.getNodeCenter() : null;
-		const fromSide = link.from.side;
-		const toSide = link.to.side;
-		const path =
-			fromPos && toPos
-				? makeSmartOrBezierPath(fromPos.x - svgRect.left, fromPos.y - svgRect.top, toPos.x - svgRect.left, toPos.y - svgRect.top, fromSide, toSide, link.from.componentId, link.to.componentId)
-				: "";
-		// Assign a random color if not already present
-		if (!link.color) {
-			link.color =
-				"#" +
-				Math.floor(Math.random() * 0xffffff)
-					.toString(16)
-					.padStart(6, "0");
-		}
-		return { fromPos, toPos, link, path };
-	});
 
 	function handleLinkClick(link, event) {
 		event.stopPropagation();
@@ -511,13 +197,6 @@
 		}
 	}
 
-	function deleteSelectedLink() {
-		if (selectedLink) {
-			links.update((current) => current.filter((l) => l !== selectedLink));
-			selectedLink = null;
-		}
-	}
-
 	function deleteSelectedLinks() {
 		if (selectedLinks.length > 0) {
 			// Delete each link individually to track in history
@@ -528,22 +207,6 @@
 			selectedLink = null;
 		}
 	}
-
-	// function deleteComponent(id) {
-	// 	components.update((current) => current.filter((comp) => comp.id !== id));
-	// 	links.update((current) => current.filter((l) => l.from.componentId !== id && l.to.componentId !== id));
-	// }
-
-	// Listen for delete key to remove selected link
-	onMount(() => {
-		const onKeyDown = (e) => {
-			if ((e.key === "Delete" || e.key === "Backspace") && selectedLink) {
-				deleteSelectedLink();
-			}
-		};
-		window.addEventListener("keydown", onKeyDown);
-		return () => window.removeEventListener("keydown", onKeyDown);
-	});
 
 	// Listen for keyboard shortcuts (Ctrl+D to duplicate, Delete to remove)
 	function handleKeyDown(event) {
@@ -894,9 +557,57 @@
 		</button>
 	</div>
 
+	{#each comps as comp (comp.id)}
+		{#if comp.type === "array"}
+			<!-- Wrap ArrayComponent so we can handle clicks but not interfere with component's own dragging -->
+			<div on:mousedown={(e) => handleComponentClick(comp, e)}>
+				<ArrayComponent
+					id={comp.id}
+					x={comp.x}
+					y={comp.y}
+					length={comp.length}
+					on:nodeMouseDown={handleNodeMouseDown}
+					{hoveredNode}
+					on:move={handleComponentMove}
+					on:redraw={() => {}}
+					class_={selectedComponentIds.includes(comp.id) ? "selected-component" : ""}
+				/>
+			</div>
+		{:else if comp.type === "2darray"}
+			<div on:mousedown={(e) => handleComponentClick(comp, e)}>
+				<Table2DComponent
+					id={comp.id}
+					x={comp.x}
+					y={comp.y}
+					rows={comp.rows}
+					cols={comp.cols}
+					on:nodeMouseDown={handleNodeMouseDown}
+					{hoveredNode}
+					on:move={handleComponentMove}
+					on:redraw={() => {}}
+					class_={selectedComponentIds.includes(comp.id) ? "selected-component" : ""}
+				/>
+			</div>
+		{:else if comp.type === "pointer"}
+			<div on:mousedown={(e) => handleComponentClick(comp, e)}>
+				<PointerComponent
+					id={comp.id}
+					x={comp.x}
+					y={comp.y}
+					value={comp.value}
+					on:nodeMouseDown={handleNodeMouseDown}
+					{hoveredNode}
+					on:move={handleComponentMove}
+					on:redraw={() => {}}
+					class_={selectedComponentIds.includes(comp.id) ? "selected-component" : ""}
+				/>
+			</div>
+		{/if}
+	{/each}
+
 	<!-- Link rendering with selection highlighting -->
 	<svg style="position:absolute; left:0; top:0; width:100vw; height:100vh; pointer-events:none; z-index:1;">
-		{#each linkEndpoints as { fromPos, toPos, link, path } (link)}
+		{#each $linkEndpoints as { fromPos, toPos, link, path }}
 			{#if fromPos && toPos}
 				<!-- Thicker invisible path for easier selection -->
 				<path d={path} stroke="transparent" stroke-width="16" fill="none" style="pointer-events:stroke" on:click={(e) => handleLinkClick(link, e)} />
@@ -945,54 +656,6 @@
 
 	<!-- Add the group selection box element -->
 	<div class="group-selection-box"></div>
-
-	{#each comps as comp (comp.id)}
-		{#if comp.type === "array"}
-			<!-- Wrap ArrayComponent so we can handle clicks but not interfere with component's own dragging -->
-			<div on:mousedown={(e) => handleComponentClick(comp, e)}>
-				<ArrayComponent
-					id={comp.id}
-					x={comp.x}
-					y={comp.y}
-					length={comp.length}
-					on:nodeMouseDown={handleNodeMouseDown}
-					{hoveredNode}
-					on:move={handleComponentMove}
-					on:redraw={() => {}}
-					class_={selectedComponentIds.includes(comp.id) ? "selected-component" : ""}
-				/>
-			</div>
-		{:else if comp.type === "2darray"}
-			<div on:mousedown={(e) => handleComponentClick(comp, e)}>
-				<Table2DComponent
-					id={comp.id}
-					x={comp.x}
-					y={comp.y}
-					rows={comp.rows}
-					cols={comp.cols}
-					on:nodeMouseDown={handleNodeMouseDown}
-					{hoveredNode}
-					on:move={handleComponentMove}
-					on:redraw={() => {}}
-					class_={selectedComponentIds.includes(comp.id) ? "selected-component" : ""}
-				/>
-			</div>
-		{:else if comp.type === "pointer"}
-			<div on:mousedown={(e) => handleComponentClick(comp, e)}>
-				<PointerComponent
-					id={comp.id}
-					x={comp.x}
-					y={comp.y}
-					value={comp.value}
-					on:nodeMouseDown={handleNodeMouseDown}
-					{hoveredNode}
-					on:move={handleComponentMove}
-					on:redraw={() => {}}
-					class_={selectedComponentIds.includes(comp.id) ? "selected-component" : ""}
-				/>
-			</div>
-		{/if}
-	{/each}
 </div>
 
 <style>

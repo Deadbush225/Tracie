@@ -1,4 +1,6 @@
 <script>
+	import { svgRect } from "../src/ui_store";
+
 	export let id;
 	export let x;
 	export let y;
@@ -7,7 +9,7 @@
 	export let hoveredNode = null;
 	export let class_ = "";
 
-	import { deleteComponent } from "../src/Whiteboard_back";
+	import { deleteComponent, updateLinkEndpoints } from "../src/Whiteboard_back";
 	import { createEventDispatcher, onMount } from "svelte";
 	const dispatch = createEventDispatcher();
 	let container;
@@ -21,6 +23,7 @@
 	let startPos = { x: 0, y: 0 };
 	let totalDx = 0;
 	let totalDy = 0;
+	let rect;
 
 	function handleMouseDown(event) {
 		if (event.currentTarget === event.target) {
@@ -70,7 +73,17 @@
 		}
 	}
 
+	// to fix nodes right after redo or undo
+	$: {
+		pos;
+		if (!dragging) {
+			console.log("POSITION CHANGED:");
+			updateLinkEndpoints();
+		}
+	}
+
 	onMount(() => {
+		rect = container.getBoundingClientRect();
 		window.addEventListener("mousemove", handleMouseMove);
 		window.addEventListener("mouseup", handleMouseUp);
 		return () => {
@@ -89,29 +102,30 @@
 	}
 
 	function getNodeCenter(side) {
-		const rect = container.getBoundingClientRect();
-		const scrollX = window.scrollX || window.pageXOffset;
-		const scrollY = window.scrollY || window.pageYOffset;
+		// Use the component's current position (pos.x, pos.y) instead of rect + scroll
+		const width = rect.width;
+		const height = rect.height;
+
 		switch (side) {
 			case "top":
 				return {
-					x: rect.left + rect.width / 2 + scrollX,
-					y: rect.top + scrollY - 6,
+					x: pos.x + svgRect.left + width / 2,
+					y: pos.y + svgRect.top - 6,
 				};
 			case "bottom":
 				return {
-					x: rect.left + rect.width / 2 + scrollX,
-					y: rect.bottom + scrollY + 6,
+					x: pos.x + svgRect.left + width / 2,
+					y: pos.y + svgRect.top + height + 6,
 				};
 			case "left":
 				return {
-					x: rect.left + scrollX - 6,
-					y: rect.top + rect.height / 2 + scrollY,
+					x: pos.x + svgRect.left - 6,
+					y: pos.y + svgRect.top + height / 2,
 				};
 			case "right":
 				return {
-					x: rect.right + scrollX + 6,
-					y: rect.top + rect.height / 2 + scrollY,
+					x: pos.x + svgRect.left + width + 6,
+					y: pos.y + svgRect.top + height / 2,
 				};
 		}
 	}
