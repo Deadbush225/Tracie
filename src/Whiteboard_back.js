@@ -102,17 +102,22 @@ class MoveComponentCommand {
 		this.componentId = componentId;
 		this.dx = dx;
 		this.dy = dy;
+		this.doNotRunYet = true;
 	}
 
 	execute() {
-		components.update((comps) =>
-			comps.map((comp) => {
-				if (comp.id === this.componentId) {
-					return { ...comp, x: comp.x + this.dx, y: comp.y + this.dy };
-				}
-				return comp;
-			})
-		);
+		if (this.doNotRunYet) {
+			this.doNotRunYet = false;
+		} else {
+			components.update((comps) =>
+				comps.map((comp) => {
+					if (comp.id === this.componentId) {
+						return { ...comp, x: comp.x + this.dx, y: comp.y + this.dy };
+					}
+					return comp;
+				})
+			);
+		}
 	}
 
 	undo() {

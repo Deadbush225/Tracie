@@ -157,13 +157,25 @@
 		} else {
 			// During drag, we should NOT update positions again - components already updated themselves
 			// Let's update only OTHER selected components that need to move together
-			if (selectedComponentIds.length > 1 && selectedComponentIds.includes(id)) {
+			// if (selectedComponentIds.length > 1 && selectedComponentIds.includes(id)) {
+			// 	components.update((comps) =>
+			// 		comps.map((comp) => {
+			// 			return { ...comp, x: comp.x + dx, y: comp.y + dy };
+			// 		})
+			// 	);
+			// }
+
+			selectedComponentIds.forEach((val) => {
 				components.update((comps) =>
 					comps.map((comp) => {
-						return { ...comp, x: comp.x + dx, y: comp.y + dy };
+						if (comp.id == val) {
+							return { ...comp, x: comp.x + dx, y: comp.y + dy };
+						} else {
+							return comp;
+						}
 					})
 				);
-			}
+			});
 		}
 
 		updateLinks(); // Ensure links are updated immediately
