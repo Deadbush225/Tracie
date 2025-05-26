@@ -121,7 +121,6 @@ class MoveComponentCommand {
 	}
 
 	undo() {
-		console.log("Undoing");
 		components.update((comps) =>
 			comps.map((comp) => {
 				if (comp.id === this.componentId) {
@@ -130,7 +129,6 @@ class MoveComponentCommand {
 				return comp;
 			})
 		);
-		updateLinks();
 	}
 }
 
@@ -630,12 +628,10 @@ export function updateLinks() {
 // Function to update linkEndpoints based on current links
 export function updateLinkEndpoints() {
 	const linksList = get(links);
-	console.log("updating links end points");
 	linkEndpoints.set(
 		linksList.map((link) => {
 			const fromPos = link.from.getNodeCenter ? link.from.getNodeCenter() : null;
 			const toPos = link.to.getNodeCenter ? link.to.getNodeCenter() : null;
-			console.log(`POS: ${fromPos.x} ${fromPos.y}`);
 			const fromSide = link.from.side;
 			const toSide = link.to.side;
 			const path =
@@ -664,6 +660,5 @@ components.subscribe(() => {
 });
 
 links.subscribe(() => {
-	console.log("Updating Links.");
 	updateLinkEndpoints();
 });

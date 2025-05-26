@@ -62,7 +62,6 @@
 			centerY: (rect.top + rect.bottom) / 2 - svgRect.top,
 		};
 
-		// console.log(bounding_rect);
 		return bounding_rect;
 	}
 
@@ -363,6 +362,8 @@
 
 	// Selection box visualizer (add it to the relative position container)
 	$: {
+		$components;
+		console.log("Creating selection visualizer");
 		if (selectedComponentIds.length > 0) {
 			// Find bounding box of all selected components
 			let minX = Infinity;
@@ -373,10 +374,10 @@
 			selectedComponentIds.forEach((id) => {
 				const box = getComponentBox(id);
 				if (box) {
-					minX = Math.min(minX, box.left);
-					minY = Math.min(minY, box.top);
-					maxX = Math.max(maxX, box.right);
-					maxY = Math.max(maxY, box.bottom);
+					minX = Math.min(minX, box.left) - 3;
+					minY = Math.min(minY, box.top) - 3;
+					maxX = Math.max(maxX, box.right) + 6;
+					maxY = Math.max(maxY, box.bottom) + 6;
 				}
 			});
 
@@ -463,7 +464,6 @@
 					}
 				}
 			}
-			console.log(newSelection);
 
 			// If shift is not pressed, replace selection, otherwise add to it
 			if (!event.shiftKey) {
@@ -474,7 +474,7 @@
 			console.log(selectedComponentIds);
 		} else {
 			// Check if the click was on a component or element before deselecting
-			const isOnComponent = event.target.closest('[id^="array-comp-"]') || event.target.closest("path[stroke]") || event.target.closest(".node");
+			const isOnComponent = event.target.closest('[id^="array-comp-"]') || event.target.closest("path[stroke]") || event.target.closest(".node") || event.target.closest(".group-selection-box");
 
 			if (!isOnComponent) {
 				console.log("Background clicked, deselecting");
@@ -517,53 +517,35 @@
 		</button>
 	</div>
 
-	{#each comps as comp (comp.id)}
-		{#if comp.type === "array"}
-			<!-- Wrap ArrayComponent so we can handle clicks but not interfere with component's own dragging -->
-			<div on:mousedown={(e) => handleComponentClick(comp, e)}>
-				<ArrayComponent
-					id={comp.id}
-					x={comp.x}
-					y={comp.y}
-					length={comp.length}
-					on:nodeMouseDown={handleNodeMouseDown}
-					{hoveredNode}
-					on:move={handleComponentMove}
-					on:redraw={() => {}}
-					class_={selectedComponentIds.includes(comp.id) ? "selected-component" : ""}
-				/>
-			</div>
-		{:else if comp.type === "2darray"}
-			<div on:mousedown={(e) => handleComponentClick(comp, e)}>
-				<Table2DComponent
-					id={comp.id}
-					x={comp.x}
-					y={comp.y}
-					rows={comp.rows}
-					cols={comp.cols}
-					on:nodeMouseDown={handleNodeMouseDown}
-					{hoveredNode}
-					on:move={handleComponentMove}
-					on:redraw={() => {}}
-					class_={selectedComponentIds.includes(comp.id) ? "selected-component" : ""}
-				/>
-			</div>
-		{:else if comp.type === "pointer"}
-			<div on:mousedown={(e) => handleComponentClick(comp, e)}>
-				<PointerComponent
-					id={comp.id}
-					x={comp.x}
-					y={comp.y}
-					value={comp.value}
-					on:nodeMouseDown={handleNodeMouseDown}
-					{hoveredNode}
-					on:move={handleComponentMove}
-					on:redraw={() => {}}
-					class_={selectedComponentIds.includes(comp.id) ? "selected-component" : ""}
-				/>
-			</div>
-		{/if}
-	{/each}
+	<div>
+		{#each comps as comp (comp.id)}
+			{#if comp.type === "array"}
+				<!-- Wrap ArrayComponent so we can handle clicks but not interfere with component's own dragging -->
+				<div class="component-placeholder" on:mousedown={(e) => handleComponentClick(comp, e)}>
+					<ArrayComponent id={comp.id} x={comp.x} y={comp.y} length={comp.length} on:nodeMouseDown={handleNodeMouseDown} {hoveredNode} on:move={handleComponentMove} on:redraw={() => {}} />
+				</div>
+			{:else if comp.type === "2darray"}
+				<div class="component-placeholder" on:mousedown={(e) => handleComponentClick(comp, e)}>
+					<Table2DComponent
+						id={comp.id}
+						x={comp.x}
+						y={comp.y}
+						rows={comp.rows}
+						cols={comp.cols}
+						on:nodeMouseDown={handleNodeMouseDown}
+						{hoveredNode}
+						on:move={handleComponentMove}
+						on:redraw={() => {}}
+					/>
+				</div>
+			{:else if comp.type === "pointer"}
+				<div class="component-placeholder" on:mousedown={(e) => handleComponentClick(comp, e)}>
+					<PointerComponent id={comp.id} x={comp.x} y={comp.y} value={comp.value} on:nodeMouseDown={handleNodeMouseDown} {hoveredNode} on:move={handleComponentMove} on:redraw={() => {}} />
+				</div>
+			{/if}
+		{/each}
+		<div class="group-selection-box"></div>
+	</div>
 
 	<!-- Link rendering with selection highlighting -->
 	<svg style="position:absolute; left:0; top:0; width:100vw; height:100vh; pointer-events:none; z-index:1;">
@@ -615,7 +597,6 @@
 	{/if}
 
 	<!-- Add the group selection box element -->
-	<div class="group-selection-box"></div>
 </div>
 
 <style>
@@ -630,11 +611,23 @@
 	}
 
 	:global(.selected-component) {
+		/* outline: 2px dashed #2196f3 !important;
+		outline-offset: 2px;
+		box-shadow: 0 0 12px rgba(33, 150, 243, 0.5) !important; */
+	}
+
+	.group-selection-box {
 		outline: 2px dashed #2196f3 !important;
 		outline-offset: 2px;
 		box-shadow: 0 0 12px rgba(33, 150, 243, 0.5) !important;
+		position: absolute;
+		z-index: 0;
+		pointer-events: none; /* This makes mouse events pass through */
 	}
 
+	.component-placeholder {
+		z-index: 10;
+	}
 	.component-wrapper {
 		position: relative;
 		cursor: pointer;
