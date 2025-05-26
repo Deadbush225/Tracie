@@ -506,7 +506,14 @@
 			for (const comp of comps) {
 				const el = document.getElementById(`array-comp-${comp.id}`);
 				if (el) {
-					const rect = el.getBoundingClientRect();
+					const originalRect = el.getBoundingClientRect();
+					// Create a new object with adjusted coordinates
+					const rect = {
+						left: originalRect.left - svgRect.left,
+						right: originalRect.right - svgRect.left,
+						top: originalRect.top - svgRect.top,
+						bottom: originalRect.bottom - svgRect.top,
+					};
 
 					// Check if component intersects with selection box
 					if (rect.left < selectionBox.x + selectionBox.width && rect.right > selectionBox.x && rect.top < selectionBox.y + selectionBox.height && rect.bottom > selectionBox.y) {
