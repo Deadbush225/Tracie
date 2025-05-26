@@ -88,17 +88,6 @@ npm run build
 - Named pointer elements
 - Connect to arrays or other components
 
-## Connection Nodes
-
-Each component has connection nodes on all four sides:
-
-- Top
-- Bottom
-- Left
-- Right
-
-Click and drag from any node to create connections between components.
-
 ## Tips
 
 - Use Shift+Click to select multiple components for group operations
