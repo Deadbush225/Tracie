@@ -1,47 +1,114 @@
-# Svelte + Vite
+# Tracie - Interactive Algorithm Visualization Toolkit
 
-This template should help get you started developing with Svelte in Vite.
+Tracie is an interactive whiteboard tool designed to help visualize data structures and algorithms. It allows you to create, manipulate, and connect various data structure components to trace through algorithms step-by-step.
 
-## Recommended IDE Setup
+## Features
 
-[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode).
+- Create and manipulate array, 2D table, and pointer components
+- Connect components with links to show relationships and references
+- Select and move multiple components together
+- Full undo/redo functionality
+- Intuitive drag-and-drop interface
 
-## Need an official Svelte framework?
+## Live Preview
 
-Check out [SvelteKit](https://github.com/sveltejs/kit#readme), which is also powered by Vite. Deploy anywhere with its serverless-first approach and adapt to various platforms, with out of the box support for TypeScript, SCSS, and Less, and easily-added support for mdsvex, GraphQL, PostCSS, Tailwind CSS, and more.
+Try out Tracie: [Live Demo](https://tracie-viz.vercel.app/)
 
-## Technical considerations
+## Getting Started
 
-**Why use this over SvelteKit?**
+### Installation
 
-- It brings its own routing solution which might not be preferable for some users.
-- It is first and foremost a framework that just happens to use Vite under the hood, not a Vite app.
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/tracie.git
 
-This template contains as little as possible to get started with Vite + Svelte, while taking into account the developer experience with regards to HMR and intellisense. It demonstrates capabilities on par with the other `create-vite` templates and is a good starting point for beginners dipping their toes into a Vite + Svelte project.
+# Navigate to the project directory
+cd tracie
 
-Should you later need the extended capabilities and extensibility provided by SvelteKit, the template has been structured similarly to SvelteKit so that it is easy to migrate.
+# Install dependencies
+npm install
 
-**Why `global.d.ts` instead of `compilerOptions.types` inside `jsconfig.json` or `tsconfig.json`?**
-
-Setting `compilerOptions.types` shuts out all other types not explicitly listed in the configuration. Using triple-slash references keeps the default TypeScript setting of accepting type information from the entire workspace, while also adding `svelte` and `vite/client` type information.
-
-**Why include `.vscode/extensions.json`?**
-
-Other templates indirectly recommend extensions via the README, but this file allows VS Code to prompt the user to install the recommended extension upon opening the project.
-
-**Why enable `checkJs` in the JS template?**
-
-It is likely that most cases of changing variable types in runtime are likely to be accidental, rather than deliberate. This provides advanced typechecking out of the box. Should you like to take advantage of the dynamically-typed nature of JavaScript, it is trivial to change the configuration.
-
-**Why is HMR not preserving my local component state?**
-
-HMR state preservation comes with a number of gotchas! It has been disabled by default in both `svelte-hmr` and `@sveltejs/vite-plugin-svelte` due to its often surprising behavior. You can read the details [here](https://github.com/sveltejs/svelte-hmr/tree/master/packages/svelte-hmr#preservation-of-local-state).
-
-If you have state that's important to retain within a component, consider creating an external store which would not be replaced by HMR.
-
-```js
-// store.js
-// An extremely simple external store
-import { writable } from 'svelte/store'
-export default writable(0)
+# Start the development server
+npm run dev
 ```
+
+### Build for Production
+
+```bash
+npm run build
+```
+
+## Keyboard Shortcuts & Controls
+
+### Component Management
+
+- **Select Component**: Click on any component
+- **Multi-select**: Shift+Click on components
+- **Select All**: Ctrl+A
+- **Deselect All**: Click on the background
+- **Delete Component(s)**: Delete or Backspace
+- **Duplicate Component(s)**: Ctrl+D
+
+### Selection Box
+
+- **Create Selection Box**: Click and drag on the background
+- **Add to Selection**: Shift+Click and drag
+
+### Moving Components
+
+- **Move Component**: Click and drag component
+- **Move Multiple Components**: Select multiple components, then drag any selected component
+
+### Linking Components
+
+- **Create Link**: Drag from a connection node of one component to another
+- **Select Link**: Click on any link
+- **Multi-select Links**: Shift+Click on links
+- **Delete Link(s)**: Select link(s) and press Delete
+
+### History
+
+- **Undo**: Ctrl+Z
+- **Redo**: Ctrl+Y or Ctrl+Shift+Z
+
+## Components
+
+### Arrays
+
+- 1D array with dragable indices and editable values
+- Click and drag column headers to reorder array elements
+
+### 2D Tables
+
+- Two-dimensional arrays with row and column indices
+- Editable cell values
+
+### Pointers
+
+- Named pointer elements
+- Connect to arrays or other components
+
+## Connection Nodes
+
+Each component has connection nodes on all four sides:
+
+- Top
+- Bottom
+- Left
+- Right
+
+Click and drag from any node to create connections between components.
+
+## Tips
+
+- Use Shift+Click to select multiple components for group operations
+- The selection box allows for easy visualization of group selections
+- Component movement is optimized to only record final positions in the history
+
+## License
+
+MIT
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
