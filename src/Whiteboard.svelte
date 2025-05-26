@@ -41,6 +41,7 @@
 
 	// Add component selection functionality
 	let selectedComponentIds = [];
+	$: selectedComponentIds;
 
 	$: comps = $components;
 	$: ls = $links;
@@ -456,10 +457,10 @@
 
 	// Background click to deselect
 	function handleBackgroundClick() {
-		console.log("Background clicked, deselecting"); // Add debug logging
-		selectedComponentIds = [];
-		selectedLinks = [];
-		selectedLink = null;
+		// console.log("Background clicked, deselecting"); // Add debug logging
+		// selectedComponentIds = [];
+		// selectedLinks = [];
+		// selectedLink = null;
 	}
 
 	// Add selection box for multi-select by dragging
@@ -469,10 +470,10 @@
 	function handleSelectionStart(event) {
 		// Only start selection box if not clicking on a component
 		if (event.target === svgContainer) {
-			selectionStartPos = { x: event.clientX, y: event.clientY };
+			selectionStartPos = { x: event.clientX - svgRect.left, y: event.clientY - svgRect.top };
 			selectionBox = {
-				x: event.clientX,
-				y: event.clientY,
+				x: event.clientX - svgRect.left,
+				y: event.clientY - svgRect.top,
 				width: 0,
 				height: 0,
 			};
@@ -485,8 +486,8 @@
 	function handleSelectionMove(event) {
 		if (selectionStartPos) {
 			// Update selection box dimensions
-			const currentX = event.clientX;
-			const currentY = event.clientY;
+			const currentX = event.clientX - svgRect.left;
+			const currentY = event.clientY - svgRect.top;
 
 			selectionBox = {
 				x: Math.min(selectionStartPos.x, currentX),
@@ -497,7 +498,7 @@
 		}
 	}
 
-	function handleSelectionEnd() {
+	function handleSelectionEnd(event) {
 		if (selectionBox && selectionBox.width > 5 && selectionBox.height > 5) {
 			// Select all components that intersect with the selection box
 			const newSelection = [];
@@ -513,6 +514,7 @@
 					}
 				}
 			}
+			console.log(newSelection);
 
 			// If shift is not pressed, replace selection, otherwise add to it
 			if (!event.shiftKey) {
@@ -520,6 +522,12 @@
 			} else {
 				selectedComponentIds = [...new Set([...selectedComponentIds, ...newSelection])];
 			}
+			console.log(selectedComponentIds);
+		} else {
+			console.log("Background clicked, deselecting"); // Add debug logging
+			selectedComponentIds = [];
+			selectedLinks = [];
+			selectedLink = null;
 		}
 
 		// Reset selection box
