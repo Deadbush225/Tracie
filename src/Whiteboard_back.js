@@ -135,17 +135,22 @@ class MoveMultipleComponentsCommand {
 		this.componentIds = componentIds;
 		this.dx = dx;
 		this.dy = dy;
+		this.doNotRunYet = true;
 	}
 
 	execute() {
-		components.update((comps) =>
-			comps.map((comp) => {
-				if (this.componentIds.includes(comp.id)) {
-					return { ...comp, x: comp.x + this.dx, y: comp.y + this.dy };
-				}
-				return comp;
-			})
-		);
+		if (this.doNotRunYet) {
+			this.doNotRunYet = false;
+		} else {
+			components.update((comps) =>
+				comps.map((comp) => {
+					if (this.componentIds.includes(comp.id)) {
+						return { ...comp, x: comp.x + this.dx, y: comp.y + this.dy };
+					}
+					return comp;
+				})
+			);
+		}
 	}
 
 	undo() {

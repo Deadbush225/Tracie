@@ -160,11 +160,7 @@
 			if (selectedComponentIds.length > 1 && selectedComponentIds.includes(id)) {
 				components.update((comps) =>
 					comps.map((comp) => {
-						// Only update OTHER selected components, not the one being dragged
-						if (selectedComponentIds.includes(comp.id) && comp.id !== id) {
-							return { ...comp, x: comp.x + dx, y: comp.y + dy };
-						}
-						return comp;
+						return { ...comp, x: comp.x + dx, y: comp.y + dy };
 					})
 				);
 			}
@@ -353,19 +349,6 @@
 		event.stopPropagation();
 	}
 
-	// This function will start the group drag operation
-	function handleMouseDownOnComponent(comp, event) {
-		console.log("Mouse down on component:", comp.id);
-
-		// Only start group drag if clicking on a selected component
-		if (selectedComponentIds.includes(comp.id)) {
-			handleGroupDragStart(event);
-		}
-
-		// Stop propagation to prevent the background selection box
-		event.stopPropagation();
-	}
-
 	// Selection box visualizer (add it to the relative position container)
 	$: {
 		if (selectedComponentIds.length > 0) {
@@ -399,59 +382,6 @@
 			if (selectionOverlay) {
 				selectionOverlay.style.display = "none";
 			}
-		}
-	}
-
-	// Group movement functionality
-	let isDraggingGroup = false;
-	let groupDragStart = { x: 0, y: 0 };
-	let componentStartPositions = [];
-
-	function handleGroupDragStart(event) {
-		if (selectedComponentIds.length > 0 && event.target.closest(".component-wrapper")) {
-			isDraggingGroup = true;
-			groupDragStart = { x: event.clientX, y: event.clientY };
-			componentStartPositions = selectedComponentIds.map((id) => {
-				const comp = comps.find((c) => c.id === id);
-				return { id, x: comp.x, y: comp.y };
-			});
-			event.preventDefault();
-		}
-	}
-
-	function handleGroupDragMove(event) {
-		if (isDraggingGroup) {
-			const dx = event.clientX - groupDragStart.x;
-			const dy = event.clientY - groupDragStart.y;
-
-			// Update UI directly during drag for better performance
-			components.update((current) =>
-				current.map((comp) => {
-					if (selectedComponentIds.includes(comp.id)) {
-						const startPos = componentStartPositions.find((p) => p.id === comp.id);
-						return {
-							...comp,
-							x: startPos.x + dx,
-							y: startPos.y + dy,
-						};
-					}
-					return comp;
-				})
-			);
-		}
-	}
-
-	function handleGroupDragEnd(event) {
-		if (isDraggingGroup) {
-			const dx = event.clientX - groupDragStart.x;
-			const dy = event.clientY - groupDragStart.y;
-
-			// Only add to history when the drag ends and there was actual movement
-			if (dx !== 0 || dy !== 0) {
-				moveMultipleComponents(selectedComponentIds, dx, dy);
-			}
-
-			isDraggingGroup = false;
 		}
 	}
 
@@ -531,10 +461,15 @@
 			}
 			console.log(selectedComponentIds);
 		} else {
-			console.log("Background clicked, deselecting"); // Add debug logging
-			selectedComponentIds = [];
-			selectedLinks = [];
-			selectedLink = null;
+			// Check if the click was on a component or element before deselecting
+			const isOnComponent = event.target.closest('[id^="array-comp-"]') || event.target.closest("path[stroke]") || event.target.closest(".node");
+
+			if (!isOnComponent) {
+				console.log("Background clicked, deselecting");
+				selectedComponentIds = [];
+				selectedLinks = [];
+				selectedLink = null;
+			}
 		}
 
 		// Reset selection box
@@ -551,11 +486,9 @@
 	on:mousedown={handleSelectionStart}
 	on:mousemove={(e) => {
 		handleSelectionMove(e);
-		handleGroupDragMove(e);
 	}}
 	on:mouseup={(e) => {
 		handleSelectionEnd(e);
-		handleGroupDragEnd();
 	}}
 >
 	<div class="menu">

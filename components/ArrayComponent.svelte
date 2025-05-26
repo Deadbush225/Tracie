@@ -57,7 +57,7 @@
 				totalDx += dx;
 				totalDy += dy;
 
-				pos = newPos;
+				// pos = newPos;
 				// Only dispatch move if not dragging a row
 				if (draggingRow === null) {
 					// Include delta in the event detail with final=false
