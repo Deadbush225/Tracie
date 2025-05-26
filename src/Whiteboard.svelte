@@ -364,6 +364,9 @@
 	$: {
 		$components;
 		console.log("Creating selection visualizer");
+
+		const selectionOverlay = document.querySelector(".group-selection-box");
+
 		if (selectedComponentIds.length > 0) {
 			// Find bounding box of all selected components
 			let minX = Infinity;
@@ -380,20 +383,16 @@
 					maxY = Math.max(maxY, box.bottom) + 6;
 				}
 			});
-
-			// Update selection box styles
-			const selectionOverlay = document.querySelector(".group-selection-box");
 			if (selectionOverlay) {
 				selectionOverlay.style.left = `${minX}px`;
 				selectionOverlay.style.top = `${minY}px`;
 				selectionOverlay.style.width = `${maxX - minX}px`;
 				selectionOverlay.style.height = `${maxY - minY}px`;
-				selectionOverlay.style.display = "block";
+				selectionOverlay.style.opacity = "100%";
 			}
 		} else {
-			const selectionOverlay = document.querySelector(".group-selection-box");
 			if (selectionOverlay) {
-				selectionOverlay.style.display = "none";
+				selectionOverlay.style.opacity = "0%";
 			}
 		}
 	}
@@ -623,11 +622,9 @@
 		position: absolute;
 		z-index: 0;
 		pointer-events: none; /* This makes mouse events pass through */
+		opacity: 0%;
 	}
 
-	.component-placeholder {
-		z-index: 10;
-	}
 	.component-wrapper {
 		position: relative;
 		cursor: pointer;
