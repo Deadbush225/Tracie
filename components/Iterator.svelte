@@ -1,18 +1,17 @@
 <script>
-	import { get } from "svelte/store";
 	import { svgRect } from "../src/ui_store";
 
 	export let id;
 	export let x;
 	export let y;
-	export let length;
+	export let class_ = "";
 	export let hoveredNode = null;
-	export let class_ = ""; // Accept class prop
-	let highlightsByIterator = {};
+	export let maxIndex = 10; // Maximum value for the iterator
+	export let linkedArrays = []; // Array of IDs this iterator is linked to
+	export let color = "black";
 
-	import { components, deleteComponent, updateLinkEndpoints } from "../src/Whiteboard_back";
-	import { createEventDispatcher, onMount, getContext } from "svelte";
-
+	import { deleteComponent, updateLinkEndpoints } from "../src/Whiteboard_back";
+	import { createEventDispatcher, onMount } from "svelte";
 	const dispatch = createEventDispatcher();
 	let container;
 
@@ -27,9 +26,34 @@
 	let totalDy = 0;
 	let rect;
 
+	// Iterator state
+	let currentIndex = 0;
+
+	function moveForward() {
+		if (currentIndex < maxIndex - 1) {
+			currentIndex++;
+			notifyLinkedArrays();
+		}
+	}
+
+	function moveBackward() {
+		if (currentIndex > 0) {
+			currentIndex--;
+			notifyLinkedArrays();
+		}
+	}
+
+	function notifyLinkedArrays() {
+		console.log(currentIndex);
+		dispatch("indexUpdate", {
+			iteratorId: id,
+			index: currentIndex,
+			linkedArrays,
+			color,
+		});
+	}
+
 	function handleMouseDown(event) {
-		// Only set dragging state if this is a direct mousedown on the component
-		// not on a child element like the column headers
 		if (event.currentTarget === event.target) {
 			dragging = true;
 			offset = {
@@ -52,38 +76,29 @@
 			};
 
 			if (newPos.x !== pos.x || newPos.y !== pos.y) {
-				// Calculate the delta movement for this frame
 				const dx = newPos.x - pos.x;
 				const dy = newPos.y - pos.y;
 
-				// Update total movement
 				totalDx += dx;
 				totalDy += dy;
 
-				// pos = newPos;
-				// Only dispatch move if not dragging a row
-				if (draggingRow === null) {
-					// Include delta in the event detail with final=false
-					dispatch("move", { id, dx, dy, totalDx, totalDy, final: false });
-					dispatch("redraw"); // notify parent to force SVG update
-				}
+				pos = newPos;
+				dispatch("move", { id, dx, dy, totalDx, totalDy, final: false });
+				dispatch("redraw");
 			}
 		}
 	}
 
 	function handleMouseUp() {
 		if (dragging) {
-			// When releasing, dispatch final position with total movement
 			dispatch("move", { id, dx: 0, dy: 0, totalDx, totalDy, final: true });
 			dragging = false;
 		}
 	}
 
-	// to fix nodes right after redo or undo
 	$: {
 		pos;
 		if (!dragging) {
-			console.log("POSITION CHANGED:");
 			updateLinkEndpoints();
 		}
 	}
@@ -93,47 +108,36 @@
 		window.addEventListener("mousemove", handleMouseMove);
 		window.addEventListener("mouseup", handleMouseUp);
 
-		const unsubscribe = getContext("iteratorStore").subscribe((store) => {
-			if (!store) return;
+		// Initial notification
+		notifyLinkedArrays();
 
-			// Reset highlights map
-			highlightsByIterator = {};
+		["top", "bottom", "left", "right"].forEach(registerNode);
 
-			// Process all iterators pointing to this array
-			store.updates.forEach((update, idx) => {
-				if (update.linkedArrays && update.linkedArrays.includes(id)) {
-					// Get color based on iterator position (or use iterator ID for consistency)
-					const iteratorComp = get(components).find((c) => c.id === update.iteratorId);
-					const color = iteratorComp?.color || update.color || "#ffeb3b";
-					highlightsByIterator[update.index] = color;
-				}
-			});
-		});
+		function handleLinkCreated(e) {
+			console.log("LINK created");
+			// If this iterator is involved in the new link, notify linked arrays
+			console.log(e);
+			console.log(id);
+			if (e.detail.fromId === id || e.detail.toId === id) {
+				console.log("Notifying");
+				Promise.resolve().then(() => {
+					notifyLinkedArrays();
+				});
+			}
+		}
+		window.addEventListener("iterator-link-created", handleLinkCreated);
 
 		return () => {
 			window.removeEventListener("mousemove", handleMouseMove);
 			window.removeEventListener("mouseup", handleMouseUp);
-			unsubscribe();
+
+			window.removeEventListener("iterator-link-created", handleLinkCreated);
 		};
 	});
 
-	let data = Array(length).fill("");
-	$: if (data.length !== length) {
-		// Adjust data array if length prop changes
-		if (data.length < length) {
-			data = [...data, ...Array(length - data.length).fill("")];
-		} else {
-			data = data.slice(0, length);
-		}
-	}
-
-	// Row drag state
-	let draggingRow = null;
-
 	function getNodeCenter(side) {
-		// Use the component's current position (pos.x, pos.y) instead of rect + scroll
-		const width = rect.width;
-		const height = rect.height;
+		const width = rect ? rect.width : 120;
+		const height = rect ? rect.height : 60;
 
 		switch (side) {
 			case "top":
@@ -159,72 +163,10 @@
 		}
 	}
 
-	// Register getNodeCenter for hit detection
 	function registerNode(side) {
 		if (!window.__getNodeCenterMap) window.__getNodeCenterMap = {};
 		window.__getNodeCenterMap[`${id}-${side}`] = () => getNodeCenter(side);
 	}
-	onMount(() => {
-		["top", "bottom", "left", "right"].forEach(registerNode);
-	});
-
-	// Replace drag state with mouse-based reordering state
-	let draggingColIndex = null;
-	let hoverColIndex = null;
-	let isReordering = false;
-
-	function handleColMouseDown(i, event) {
-		// Start column dragging/reordering
-		draggingColIndex = i;
-		hoverColIndex = i;
-		isReordering = true;
-		// Prevent component dragging when reordering columns
-		event.stopPropagation();
-	}
-
-	function handleColMouseMove(i) {
-		// Update hover target and perform reordering during drag
-		if (isReordering && draggingColIndex !== null && i !== draggingColIndex) {
-			hoverColIndex = i;
-
-			// Reorder the data array immediately on hover
-			const newData = [...data];
-
-			if (swap) {
-				// Swap the two values directly
-				[newData[draggingColIndex], newData[hoverColIndex]] = [newData[hoverColIndex], newData[draggingColIndex]];
-			} else {
-				// Remove and insert (original behavior)
-				const [moved] = newData.splice(draggingColIndex, 1);
-				newData.splice(hoverColIndex, 0, moved);
-			}
-
-			data = newData;
-			// Update draggingColIndex to follow the moved column
-			draggingColIndex = hoverColIndex;
-		}
-	}
-
-	// Add a property to control swap behavior
-	export let swap = true; // If true, swap elements; if false, insert
-
-	function handleColMouseUp() {
-		// Reset state
-		draggingColIndex = null;
-		hoverColIndex = null;
-		isReordering = false;
-	}
-
-	// Global mouse up handler to ensure reordering stops if mouse is released outside columns
-	onMount(() => {
-		// ...existing event listeners...
-
-		window.addEventListener("mouseup", handleColMouseUp);
-		return () => {
-			// ...existing removeEventListeners...
-			window.removeEventListener("mouseup", handleColMouseUp);
-		};
-	});
 </script>
 
 <div
@@ -238,6 +180,7 @@
 	on:click|stopPropagation
 >
 	<button on:click={() => deleteComponent(id)} class="delete-x" title="Delete"> × </button>
+
 	<!-- Nodes on all sides -->
 	<div
 		class="node {hoveredNode && hoveredNode.componentId === id && hoveredNode.side === 'top' ? 'node-hovered' : ''}"
@@ -288,29 +231,17 @@
 			})}
 	/>
 
-	<!-- Table -->
-	<table style="border-collapse:collapse;">
-		<tbody>
-			<tr>
-				{#each Array(length) as _, i}
-					<td
-						style="position:relative; border:1px solid #888; padding:6px; background:#e3e3e3; cursor:move; 
-							{draggingColIndex === i ? 'opacity:0.5;' : ''} 
-							{hoverColIndex === i && draggingColIndex !== null && isReordering ? 'outline:2px dashed #1976d2;' : ''}; background:{highlightsByIterator[i] || '#e3e3e3'}; "
-						on:mousedown={(e) => handleColMouseDown(i, e)}
-						on:mousemove={() => handleColMouseMove(i)}>{i}</td
-					>
-				{/each}
-			</tr>
-			<tr>
-				{#each Array(length) as _, i}
-					<td style="border:1px solid #888; padding:6px;">
-						<input style="width:40px;" bind:value={data[i]} />
-					</td>
-				{/each}
-			</tr>
-		</tbody>
-	</table>
+	<!-- Iterator Controls -->
+	<div class="iterator-container">
+		<div class="iterator-label" style="color: {color};">Iterator</div>
+		<div class="iterator-controls">
+			<button class="nav-button" on:click|stopPropagation={moveBackward} disabled={currentIndex <= 0}> ← </button>
+			<div class="index-display">
+				<span class="index-value">{currentIndex}</span>
+			</div>
+			<button class="nav-button" on:click|stopPropagation={moveForward} disabled={currentIndex >= maxIndex - 1}> → </button>
+		</div>
+	</div>
 </div>
 
 <style>
@@ -329,5 +260,63 @@
 		box-shadow: 0 0 0 6px rgba(25, 118, 210, 0.2);
 		border: 2px solid #1976d2;
 		background: #fff;
+	}
+	.iterator-container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+	}
+	.iterator-label {
+		font-weight: bold;
+		margin-bottom: 5px;
+		font-size: 14px;
+		/* color: #444; */
+	}
+	.iterator-controls {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		width: 100%;
+	}
+	.nav-button {
+		background: #e3e3e3;
+		border: 1px solid #888;
+		border-radius: 4px;
+		padding: 4px 10px;
+		cursor: pointer;
+		font-weight: bold;
+	}
+	.nav-button:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+	.nav-button:hover:not(:disabled) {
+		background: #d0d0d0;
+	}
+	.index-display {
+		border: 1px solid #888;
+		border-radius: 4px;
+		padding: 6px 12px;
+		background: #f5f5f5;
+		margin: 0 8px;
+		min-width: 20px;
+		text-align: center;
+	}
+	.index-value {
+		font-weight: bold;
+		font-size: 16px;
+	}
+	.delete-x {
+		position: absolute;
+		right: 4px;
+		top: 2px;
+		background: none;
+		border: none;
+		font-size: 18px;
+		cursor: pointer;
+		color: #888;
+	}
+	.delete-x:hover {
+		color: #d32f2f;
 	}
 </style>

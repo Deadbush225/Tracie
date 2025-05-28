@@ -2,6 +2,7 @@
 	import ArrayComponent from "../components/ArrayComponent.svelte";
 	import Table2DComponent from "../components/Table2DComponent.svelte";
 	import PointerComponent from "../components/PointerComponent.svelte";
+	import IteratorComponent from "../components/Iterator.svelte";
 
 	import {
 		components,
@@ -22,10 +23,12 @@
 		makeSmartOrBezierPath,
 		linkEndpoints,
 		updateLinks,
+		addIteratorComponent,
 	} from "./Whiteboard_back";
 
-	import { onMount } from "svelte";
+	import { onMount, setContext } from "svelte";
 	import { updateSvgRect2, svgRect } from "./ui_store";
+	import { writable } from "svelte/store";
 
 	let linkingFrom = null;
 	let draggingLink = null;
@@ -46,9 +49,32 @@
 	$: comps = $components;
 	$: ls = $links;
 
+	// Create a store for iterator events
+	const iteratorStore = writable({
+		updates: [], // Store updates from all iterators
+		lastUpdate: null, // Most recent update for convenience
+	});
+	setContext("iteratorStore", iteratorStore);
+
+	// Handle iterator index updates
+	function handleIteratorIndexUpdate(event) {
+		const { iteratorId, index, linkedArrays } = event.detail;
+
+		iteratorStore.update((store) => {
+			// Add/update this iterator's entry
+			const updates = store.updates.filter((u) => u.iteratorId !== iteratorId);
+			updates.push({ iteratorId, index, linkedArrays });
+
+			return {
+				updates,
+				lastUpdate: { iteratorId, index, linkedArrays },
+			};
+		});
+	}
+
 	// Helper to get a component's bounding box by id
 	function getComponentBox(id) {
-		const el = document.getElementById(`array-comp-${id}`);
+		const el = document.getElementById(`comp-${id}`);
 		if (!el) return null;
 		const rect = el.getBoundingClientRect();
 		const bounding_rect = {
@@ -379,8 +405,8 @@
 				if (box) {
 					minX = Math.min(minX, box.left) - 3;
 					minY = Math.min(minY, box.top) - 3;
-					maxX = Math.max(maxX, box.right) + 6;
-					maxY = Math.max(maxY, box.bottom) + 6;
+					maxX = Math.max(maxX, box.right) + 4;
+					maxY = Math.max(maxY, box.bottom) + 4;
 				}
 			});
 			if (selectionOverlay) {
@@ -395,14 +421,6 @@
 				selectionOverlay.style.opacity = "0%";
 			}
 		}
-	}
-
-	// Background click to deselect
-	function handleBackgroundClick() {
-		// console.log("Background clicked, deselecting"); // Add debug logging
-		// selectedComponentIds = [];
-		// selectedLinks = [];
-		// selectedLink = null;
 	}
 
 	// Add selection box for multi-select by dragging
@@ -446,7 +464,7 @@
 			const newSelection = [];
 
 			for (const comp of comps) {
-				const el = document.getElementById(`array-comp-${comp.id}`);
+				const el = document.getElementById(`comp-${comp.id}`);
 				if (el) {
 					const originalRect = el.getBoundingClientRect();
 					// Create a new object with adjusted coordinates
@@ -473,7 +491,7 @@
 			console.log(selectedComponentIds);
 		} else {
 			// Check if the click was on a component or element before deselecting
-			const isOnComponent = event.target.closest('[id^="array-comp-"]') || event.target.closest("path[stroke]") || event.target.closest(".node") || event.target.closest(".group-selection-box");
+			const isOnComponent = event.target.closest('[id^="comp-"]') || event.target.closest("path[stroke]") || event.target.closest(".node") || event.target.closest(".group-selection-box");
 
 			if (!isOnComponent) {
 				console.log("Background clicked, deselecting");
@@ -493,7 +511,6 @@
 <div
 	bind:this={svgContainer}
 	style="position:relative; width:100vw; height:100vh; background:#f8f8f8;"
-	on:click={handleBackgroundClick}
 	on:mousedown={handleSelectionStart}
 	on:mousemove={(e) => {
 		handleSelectionMove(e);
@@ -506,6 +523,7 @@
 		<button on:click={addArrayComponent}>Add Array</button>
 		<button on:click={add2DTableComponent}>Add 2D Table</button>
 		<button on:click={addPointerComponent}>Add Pointer</button>
+		<button on:click={addIteratorComponent}>Add Iterator</button>
 		<div style="width: 20px;"></div>
 		<!-- Spacer -->
 		<button on:click={undo} disabled={!canUndo} title="Undo (Ctrl+Z)">
@@ -521,7 +539,17 @@
 			{#if comp.type === "array"}
 				<!-- Wrap ArrayComponent so we can handle clicks but not interfere with component's own dragging -->
 				<div class="component-placeholder" on:mousedown={(e) => handleComponentClick(comp, e)}>
-					<ArrayComponent id={comp.id} x={comp.x} y={comp.y} length={comp.length} on:nodeMouseDown={handleNodeMouseDown} {hoveredNode} on:move={handleComponentMove} on:redraw={() => {}} />
+					<ArrayComponent
+						id={comp.id}
+						x={comp.x}
+						y={comp.y}
+						length={comp.length}
+						on:nodeMouseDown={handleNodeMouseDown}
+						on:indexUpdate={handleIteratorIndexUpdate}
+						{hoveredNode}
+						on:move={handleComponentMove}
+						on:redraw={() => {}}
+					/>
 				</div>
 			{:else if comp.type === "2darray"}
 				<div class="component-placeholder" on:mousedown={(e) => handleComponentClick(comp, e)}>
@@ -540,6 +568,21 @@
 			{:else if comp.type === "pointer"}
 				<div class="component-placeholder" on:mousedown={(e) => handleComponentClick(comp, e)}>
 					<PointerComponent id={comp.id} x={comp.x} y={comp.y} value={comp.value} on:nodeMouseDown={handleNodeMouseDown} {hoveredNode} on:move={handleComponentMove} on:redraw={() => {}} />
+				</div>
+			{:else if comp.type === "iterator"}
+				<div class="component-placeholder" on:mousedown={(e) => handleComponentClick(comp, e)}>
+					<IteratorComponent
+						id={comp.id}
+						x={comp.x}
+						y={comp.y}
+						linkedArrays={comp.linkedArrays || []}
+						on:nodeMouseDown={handleNodeMouseDown}
+						on:indexUpdate={handleIteratorIndexUpdate}
+						{hoveredNode}
+						on:move={handleComponentMove}
+						on:redraw={() => {}}
+						color={comp.color}
+					/>
 				</div>
 			{/if}
 		{/each}

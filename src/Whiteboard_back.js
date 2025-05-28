@@ -1,7 +1,7 @@
 import { writable, get } from "svelte/store";
 import { svgRect } from "./ui_store";
 
-export let nextId = 3; // Start from 3 to account for the initial components
+export let nextId = 10; // Start from 3 to account for the initial components
 
 // Command Pattern for undo/redo
 // Each command should have execute() and undo() methods
@@ -187,14 +187,52 @@ class CreateLinkCommand {
 class DeleteLinkCommand {
 	constructor(link) {
 		this.link = link;
+		// Store component info to update linkedArrays when undoing
+		this.fromCompType = getComponentType(link.from.componentId);
+		this.toCompType = getComponentType(link.to.componentId);
 	}
 
 	execute() {
 		links.update((ls) => ls.filter((l) => l !== this.link));
+
+		// Remove from linkedArrays if needed
+		this.updateLinkedArrays(false);
 	}
 
 	undo() {
 		links.update((ls) => [...ls, this.link]);
+
+		// Add back to linkedArrays
+		this.updateLinkedArrays(true);
+	}
+
+	updateLinkedArrays(isAdd) {
+		// Update linkedArrays on related iterators
+		components.update((comps) => {
+			return comps.map((comp) => {
+				if (
+					(comp.id === this.link.from.componentId && comp.type === "iterator" && this.toCompType === "array") ||
+					(comp.id === this.link.to.componentId && comp.type === "iterator" && this.fromCompType === "array")
+				) {
+					const arrayId = this.fromCompType === "array" ? this.link.from.componentId : this.link.to.componentId;
+
+					if (isAdd) {
+						// Add the array ID to linkedArrays
+						return {
+							...comp,
+							linkedArrays: [...(comp.linkedArrays || []), arrayId],
+						};
+					} else {
+						// Remove the array ID from linkedArrays
+						return {
+							...comp,
+							linkedArrays: (comp.linkedArrays || []).filter((id) => id !== arrayId),
+						};
+					}
+				}
+				return comp;
+			});
+		});
 	}
 }
 
@@ -265,6 +303,31 @@ export function addPointerComponent() {
 	executeCommand(new AddComponentCommand(component));
 }
 
+function generateColor(id) {
+	// Generates visually distinct colors using the golden angle
+	const goldenAngle = 137.508;
+	const hue = (id * goldenAngle) % 360;
+	return `hsl(${hue}, 70%, 55%)`;
+}
+
+export function addIteratorComponent() {
+	const name = prompt("Enter Iterator name:");
+	if (name === null || name === "") return;
+
+	const component = {
+		id: nextId++,
+		type: "iterator",
+		x: 100,
+		y: 100,
+		value: name,
+		linkedArrays: [],
+		maxIndex: 10,
+		color: generateColor(nextId),
+	};
+
+	executeCommand(new AddComponentCommand(component));
+}
+
 export function deleteComponent(id) {
 	executeCommand(new DeleteComponentCommand(id));
 }
@@ -293,6 +356,7 @@ export function duplicateComponent(id, offsetX = 20, offsetY = 20) {
 	return copy.id;
 }
 
+// In Whiteboard_back.js
 export function createLink(fromNode, toNode) {
 	if (!fromNode || !toNode) return;
 
@@ -306,8 +370,51 @@ export function createLink(fromNode, toNode) {
 				.padStart(6, "0"),
 	};
 
+	// Update linkedArrays when creating links between iterators and arrays
+	components.update((comps) => {
+		return comps.map((comp) => {
+			// Iterator -> Array link
+			if (comp.type === "iterator" && comp.id === fromNode.componentId) {
+				const toComp = comps.find((c) => c.id === toNode.componentId);
+				if (toComp && toComp.type === "array") {
+					return {
+						...comp,
+						linkedArrays: [...(comp.linkedArrays || []), toNode.componentId],
+					};
+				}
+			}
+			// Array -> Iterator link
+			else if (comp.type === "iterator" && comp.id === toNode.componentId) {
+				const fromComp = comps.find((c) => c.id === fromNode.componentId);
+				if (fromComp && fromComp.type === "array") {
+					return {
+						...comp,
+						linkedArrays: [...(comp.linkedArrays || []), fromNode.componentId],
+					};
+				}
+			}
+			return comp;
+		});
+	});
+
+	// Notify iterators that a link was created
+	const event = new CustomEvent("iterator-link-created", {
+		detail: {
+			fromId: fromNode.componentId,
+			toId: toNode.componentId,
+		},
+	});
+	window.dispatchEvent(event);
+
+	// Create the link command
 	executeCommand(new CreateLinkCommand(link));
 	return link;
+}
+
+// Helper function to get component type
+function getComponentType(id) {
+	const comp = get(components).find((c) => c.id === id);
+	return comp ? comp.type : null;
 }
 
 export function deleteLink(link) {
@@ -330,6 +437,15 @@ components.set([
 		y: 300,
 		rows: 4,
 		cols: 4,
+	},
+	{
+		id: 3,
+		type: "iterator",
+		x: 400,
+		y: 100,
+		hoveredNode: null,
+		linkedArrays: [],
+		color: generateColor(10),
 	},
 ]);
 

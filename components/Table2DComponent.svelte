@@ -142,7 +142,7 @@
 
 <div
 	bind:this={container}
-	id={"array-comp-" + id}
+	id={"comp-" + id}
 	class={class_}
 	style="position:absolute; left:{pos.x}px; top:{pos.y}px; border:1px solid #333; background:#fff; border-radius:6px; box-shadow:0 2px 8px #0002; user-select:none; cursor:{dragging
 		? 'grabbing'
