@@ -10,6 +10,7 @@
 
 	import { deleteComponent, updateLinkEndpoints } from "../src/Whiteboard_back";
 	import { createEventDispatcher, onMount } from "svelte";
+	import ComponentBox from "./ComponentBox.svelte";
 	const dispatch = createEventDispatcher();
 	let container;
 
@@ -127,88 +128,12 @@
 	});
 </script>
 
-<div
-	bind:this={container}
-	id={"line-editor-" + id}
-	class={class_}
-	style="position:absolute; left:{pos.x}px; top:{pos.y}px; border:1px solid #333; background:#fff; border-radius:6px; box-shadow:0 2px 8px #0002; user-select:none; cursor:{dragging
-		? 'grabbing'
-		: 'grab'}; padding:8px; min-width:200px;"
-	on:mousedown={handleMouseDown}
-	on:click|stopPropagation
->
-	<button on:click={() => deleteComponent(id)} class="delete-x" title="Delete"> × </button>
-	<!-- Nodes on all sides -->
-	<div
-		class="node {hoveredNode && hoveredNode.componentId === id && hoveredNode.side === 'top' ? 'node-hovered' : ''}"
-		data-comp-id={id}
-		data-side="top"
-		style="left:50%; top:-14px; transform:translateX(-50%);"
-		on:mousedown|stopPropagation={() =>
-			dispatch("nodeMouseDown", {
-				componentId: id,
-				side: "top",
-				getNodeCenter: () => getNodeCenter("top"),
-			})}
-	/>
-	<div
-		class="node {hoveredNode && hoveredNode.componentId === id && hoveredNode.side === 'bottom' ? 'node-hovered' : ''}"
-		data-comp-id={id}
-		data-side="bottom"
-		style="left:50%; bottom:-14px; transform:translateX(-50%);"
-		on:mousedown|stopPropagation={() =>
-			dispatch("nodeMouseDown", {
-				componentId: id,
-				side: "bottom",
-				getNodeCenter: () => getNodeCenter("bottom"),
-			})}
-	/>
-	<div
-		class="node {hoveredNode && hoveredNode.componentId === id && hoveredNode.side === 'left' ? 'node-hovered' : ''}"
-		data-comp-id={id}
-		data-side="left"
-		style="left:-14px; top:50%; transform:translateY(-50%);"
-		on:mousedown|stopPropagation={() =>
-			dispatch("nodeMouseDown", {
-				componentId: id,
-				side: "left",
-				getNodeCenter: () => getNodeCenter("left"),
-			})}
-	/>
-	<div
-		class="node {hoveredNode && hoveredNode.componentId === id && hoveredNode.side === 'right' ? 'node-hovered' : ''}"
-		data-comp-id={id}
-		data-side="right"
-		style="right:-14px; top:50%; transform:translateY(-50%);"
-		on:mousedown|stopPropagation={() =>
-			dispatch("nodeMouseDown", {
-				componentId: id,
-				side: "right",
-				getNodeCenter: () => getNodeCenter("right"),
-			})}
-	/>
-
+<ComponentBox {id} {x} {y} {class_} on:move={(e) => dispatch("move", e.detail)} on:nodeMouseDown={(e) => dispatch("nodeMouseDown", e.detail)}>
 	<!-- Editable line input -->
 	<input type="text" bind:value style="width:100%; font-size:1.1em; border:none; outline:none; background:transparent; padding:4px;" on:input={() => dispatch("edit", { id, value })} />
-</div>
+</ComponentBox>
 
 <style>
-	.node {
-		width: 12px;
-		height: 12px;
-		background: #1976d2;
-		border-radius: 50%;
-		position: absolute;
-		transition:
-			box-shadow 0.1s,
-			border 0.1s,
-			background 0.1s;
-	}
-	.node-hovered {
-		box-shadow: 0 0 0 6px rgba(25, 118, 210, 0.2);
-		border: 2px solid #1976d2;
-		background: #fff;
-	}
 	input[type="text"] {
 		box-sizing: border-box;
 	}
