@@ -2,7 +2,7 @@
 	import ArrayComponent from "../components/ArrayComponent.svelte";
 	import Table2DComponent from "../components/Table2DComponent.svelte";
 	import PointerComponent from "../components/PointerComponent.svelte";
-	import IteratorComponent from "../components/Iterator.svelte";
+	import IteratorComponent from "../components/IteratorComponent.svelte";
 
 	import {
 		components,

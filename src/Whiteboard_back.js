@@ -304,10 +304,8 @@ export function addPointerComponent() {
 }
 
 function generateColor(id) {
-	// Generates visually distinct colors using the golden angle
-	const goldenAngle = 137.508;
-	const hue = (id * goldenAngle) % 360;
-	return `hsl(${hue}, 70%, 55%)`;
+	// Generate a hex color based on the ID
+	return `#${((id * 9631) % 0xffffff).toString(16).padStart(6, "0")}`;
 }
 
 export function addIteratorComponent() {
