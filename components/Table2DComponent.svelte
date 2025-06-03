@@ -92,10 +92,13 @@
 				{/each}
 			</tr>
 			{#each Array(rows) as _, r}
-				<tr>
-					<td style="border:1px solid #888; padding:6px; background:{blendColors(highlightedRows[r])}; text-align:center;">{r}</td>
+				<tr style="background:{blendColors(highlightedRows[r])};">
+					<td style="border:1px solid #888; padding:6px; text-align:center;">{r}</td>
 					{#each Array(cols) as _, c}
-						<td style="border:1px solid #888; padding:6px;">
+						<td
+							style="border:1px solid #888; padding:6px; 
+                               background:{highlightedCols[c] ? blendColors(highlightedCols[c]) : ''};"
+						>
 							<input style="width:40px;" bind:value={data[r][c]} />
 						</td>
 					{/each}
@@ -106,4 +109,7 @@
 </ComponentBox>
 
 <style>
+	input {
+		background: transparent;
+	}
 </style>

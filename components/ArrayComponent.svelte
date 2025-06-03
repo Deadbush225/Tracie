@@ -174,4 +174,7 @@
 </ComponentBox>
 
 <style>
+	input {
+		background: transparent;
+	}
 </style>
