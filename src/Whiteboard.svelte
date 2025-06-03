@@ -3,6 +3,7 @@
 	import Table2DComponent from "../components/Table2DComponent.svelte";
 	import PointerComponent from "../components/PointerComponent.svelte";
 	import IteratorComponent from "../components/IteratorComponent.svelte";
+	import NodeComponent from "../components/NodeComponent.svelte";
 
 	import {
 		components,
@@ -24,6 +25,7 @@
 		linkEndpoints,
 		updateLinks,
 		addIteratorComponent,
+		addNodeComponent,
 	} from "./Whiteboard_back";
 
 	import { onMount, setContext } from "svelte";
@@ -531,6 +533,7 @@
 		<button on:click={add2DTableComponent}>Add 2D Table</button>
 		<button on:click={addPointerComponent}>Add Pointer</button>
 		<button on:click={addIteratorComponent}>Add Iterator</button>
+		<button on:click={addNodeComponent}>Add Node</button>
 		<div style="width: 20px;"></div>
 		<!-- Spacer -->
 		<button on:click={undo} disabled={!canUndo} title="Undo (Ctrl+Z)"> Undo </button>
@@ -575,6 +578,20 @@
 						on:redraw={() => {}}
 						color={comp.color}
 					/>
+				</div>
+			{:else if comp.type === "node"}
+				<div class="component-placeholder" on:mousedown={(e) => handleComponentClick(comp, e)} role="button" tabindex="0" on:keydown={() => {}}>
+					<NodeComponent
+						id={comp.id}
+						x={comp.x}
+						y={comp.y}
+						label={comp.label}
+						on:nodeMouseDown={handleNodeMouseDown}
+						on:indexUpdate={handleIteratorIndexUpdate}
+						{hoveredNode}
+						on:move={handleComponentMove}
+						on:redraw={() => {}}
+					></NodeComponent>
 				</div>
 			{/if}
 		{/each}

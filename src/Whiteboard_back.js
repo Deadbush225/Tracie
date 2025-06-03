@@ -565,7 +565,7 @@ components.set([
 	{
 		id: 2,
 		type: "2darray",
-		x: 200,
+		x: 70,
 		y: 300,
 		rows: 4,
 		cols: 4,
@@ -578,6 +578,13 @@ components.set([
 		hoveredNode: null,
 		linkedArrays: [],
 		color: generateColor(10),
+	},
+	{
+		id: 4,
+		type: "node",
+		x: 400,
+		y: 300,
+		hoveredNode: null,
 	},
 ]);
 
@@ -916,6 +923,22 @@ export function updateLinkEndpoints() {
 			return { fromPos, toPos, link, path };
 		})
 	);
+}
+
+// In Whiteboard_back.js
+export function addNodeComponent() {
+	const value = prompt("Enter node value:");
+
+	const component = {
+		id: nextId++,
+		type: "node",
+		x: 100,
+		y: 100,
+		value: value || "",
+		color: generateColor(nextId),
+	};
+
+	executeCommand(new AddComponentCommand(component));
 }
 
 // Subscribe to both components and links
