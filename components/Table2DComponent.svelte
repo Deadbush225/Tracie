@@ -80,24 +80,48 @@
 		const newData = Array.from({ length: rows }, (_, r) => Array.from({ length: cols }, (_, c) => data[r]?.[c] ?? ""));
 		data = newData;
 	}
+
+	// Add this function to handle intersections
+	function getIntersectionColor(rowColors, colColors) {
+		// If both row and column are highlighted, blend them
+		if (rowColors?.length > 0 && colColors?.length > 0) {
+			// Create a deeper blend for intersections
+			const allColors = [...rowColors, ...colColors];
+			return blendColors(allColors);
+		}
+		// If only row is highlighted
+		else if (rowColors?.length > 0) {
+			return blendColors(rowColors);
+		}
+		// If only column is highlighted
+		else if (colColors?.length > 0) {
+			return blendColors(colColors);
+		}
+		// No highlighting
+		return "";
+	}
 </script>
 
 <ComponentBox {id} {x} {y} {class_} on:move={(e) => dispatch("move", e.detail)} on:nodeMouseDown={(e) => dispatch("nodeMouseDown", e.detail)}>
 	<table style="border-collapse:collapse;">
 		<tbody>
 			<tr>
-				<td></td>
+				<td style="border:1px solid #888; padding:6px;"></td>
 				{#each Array(cols) as _, c}
-					<td style="border:1px solid #888; padding:6px; background:{blendColors(highlightedCols[c])}; text-align:center;">{c}</td>
+					<td class="header" style="border:1px solid #888; padding:6px; background:#e3e3e3; background:{blendColors(highlightedCols[c])}; text-align:center;">
+						{c}
+					</td>
 				{/each}
 			</tr>
 			{#each Array(rows) as _, r}
-				<tr style="background:{blendColors(highlightedRows[r])};">
-					<td style="border:1px solid #888; padding:6px; text-align:center;">{r}</td>
+				<tr>
+					<td class="header" style="border:1px solid #888; padding:6px; text-align:center; background:#e3e3e3; background:{blendColors(highlightedRows[r])};">
+						{r}
+					</td>
 					{#each Array(cols) as _, c}
 						<td
 							style="border:1px solid #888; padding:6px; 
-                               background:{highlightedCols[c] ? blendColors(highlightedCols[c]) : ''};"
+                          background:{getIntersectionColor(highlightedRows[r], highlightedCols[c])};"
 						>
 							<input style="width:40px;" bind:value={data[r][c]} />
 						</td>
@@ -111,5 +135,8 @@
 <style>
 	input {
 		background: transparent;
+	}
+
+	.header {
 	}
 </style>

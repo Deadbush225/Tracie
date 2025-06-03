@@ -486,19 +486,61 @@ export function duplicateComponent(id, offsetX = 20, offsetY = 20) {
 export function createLink(fromNode, toNode) {
 	if (!fromNode || !toNode) return;
 
-	const link = {
-		from: fromNode,
-		to: toNode,
-		color:
+	// Determine if an iterator is involved and which component it is
+	const fromType = getComponentType(fromNode.componentId);
+	const toType = getComponentType(toNode.componentId);
+
+	let baseColor;
+	let shade = 0;
+
+	// If this link involves an iterator, use the iterator's color
+	if (fromType === "iterator") {
+		const iteratorComp = get(components).find((c) => c.id === fromNode.componentId);
+		baseColor = iteratorComp.color;
+		// Count existing links to determine shade
+		const existingLinks = get(links).filter((l) => l.from.componentId === fromNode.componentId || l.to.componentId === fromNode.componentId);
+		shade = existingLinks.length * 10; // 10% darker per link
+	} else if (toType === "iterator") {
+		const iteratorComp = get(components).find((c) => c.id === toNode.componentId);
+		baseColor = iteratorComp.color;
+		// Count existing links to determine shade
+		const existingLinks = get(links).filter((l) => l.from.componentId === toNode.componentId || l.to.componentId === toNode.componentId);
+		shade = existingLinks.length * 10; // 10% darker per link
+	} else {
+		// Not an iterator link, use random color
+		baseColor =
 			"#" +
 			Math.floor(Math.random() * 0xffffff)
 				.toString(16)
-				.padStart(6, "0"),
+				.padStart(6, "0");
+	}
+
+	// Create the link with the adjusted color
+	const link = {
+		from: fromNode,
+		to: toNode,
+		color: shade > 0 ? adjustBrightness(baseColor, -shade) : baseColor,
 	};
 
 	// Create the link command
 	executeCommand(new CreateLinkCommand(link));
 	return link;
+}
+
+// Helper function to adjust color brightness
+function adjustBrightness(hex, percent) {
+	// Convert hex to RGB
+	let r = parseInt(hex.slice(1, 3), 16);
+	let g = parseInt(hex.slice(3, 5), 16);
+	let b = parseInt(hex.slice(5, 7), 16);
+
+	// Adjust brightness
+	r = Math.max(0, Math.min(255, r + (r * percent) / 100));
+	g = Math.max(0, Math.min(255, g + (g * percent) / 100));
+	b = Math.max(0, Math.min(255, b + (b * percent) / 100));
+
+	// Convert back to hex
+	return "#" + Math.round(r).toString(16).padStart(2, "0") + Math.round(g).toString(16).padStart(2, "0") + Math.round(b).toString(16).padStart(2, "0");
 }
 
 // Helper function to get component type

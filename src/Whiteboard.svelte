@@ -533,12 +533,8 @@
 		<button on:click={addIteratorComponent}>Add Iterator</button>
 		<div style="width: 20px;"></div>
 		<!-- Spacer -->
-		<button on:click={undo} disabled={!canUndo} title="Undo (Ctrl+Z)">
-			<span class="material-icons">undo</span>
-		</button>
-		<button on:click={redo} disabled={!canRedo} title="Redo (Ctrl+Y)">
-			<span class="material-icons">redo</span>
-		</button>
+		<button on:click={undo} disabled={!canUndo} title="Undo (Ctrl+Z)"> Undo </button>
+		<button on:click={redo} disabled={!canRedo} title="Redo (Ctrl+Y)"> Redo </button>
 	</div>
 
 	<div>
