@@ -56,6 +56,22 @@
 	});
 	setContext("iteratorStore", iteratorStore);
 
+	function handleIteratorLinkDeleted(event) {
+		console.log("NOTIFY DELETED LINK: RECIEVE");
+
+		const { iteratorId, linkedArrayId, linkDirection } = event.detail;
+
+		iteratorStore.update((store) => {
+			// Remove the specific update for this iterator-array pair
+			const updates = store.updates.filter((u) => !(u.iteratorId === iteratorId && u.linkedArrayId === linkedArrayId && u.linkDirection === linkDirection));
+
+			return {
+				...store,
+				updates,
+			};
+		});
+	}
+
 	// Handle iterator index updates
 	function handleIteratorIndexUpdate(event) {
 		const { iteratorId, index, linkedArrays, color, linkDirection, linkedArrayId } = event.detail;
@@ -107,12 +123,6 @@
 			.map((c) => ({ id: c.id, ...getComponentBox(c.id) }))
 			.filter((b) => b.left !== undefined && b.top !== undefined);
 	}
-
-	onMount(() => {
-		updateSvgRect();
-		window.addEventListener("resize", updateSvgRect);
-		return () => window.removeEventListener("resize", updateSvgRect);
-	});
 
 	function updateSvgRect() {
 		updateSvgRect2(svgContainer);
@@ -346,9 +356,12 @@
 		updateSvgRect();
 		window.addEventListener("resize", updateSvgRect);
 		window.addEventListener("keydown", handleKeyDown);
+
+		window.addEventListener("iterator-link-deleted", handleIteratorLinkDeleted);
 		return () => {
 			window.removeEventListener("resize", updateSvgRect);
 			window.removeEventListener("keydown", handleKeyDown);
+			window.removeEventListener("iterator-link-deleted", handleIteratorLinkDeleted);
 		};
 	});
 
@@ -401,12 +414,15 @@
 				}
 			});
 			if (selectionOverlay) {
-				const overlay = selectionOverlay as HTMLElement;
-				overlay.style.left = `${minX}px`;
-				overlay.style.top = `${minY}px`;
-				overlay.style.width = `${maxX - minX}px`;
-				overlay.style.height = `${maxY - minY}px`;
-				overlay.style.opacity = "100%";
+				selectionOverlay.style.left = `${minX}px`;
+				selectionOverlay.style.top = `${minY}px`;
+				selectionOverlay.style.width = `${maxX - minX}px`;
+				selectionOverlay.style.height = `${maxY - minY}px`;
+				selectionOverlay.style.opacity = "100%";
+			}
+		} else {
+			if (selectionOverlay) {
+				selectionOverlay.style.opacity = "0%";
 			}
 		}
 	}
