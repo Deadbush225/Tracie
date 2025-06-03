@@ -279,7 +279,7 @@ class DeleteLinkCommand {
 		links.update((ls) => ls.filter((l) => l !== this.link));
 
 		// Remove from linkedArrays if needed
-		// this.updateLinkedArrays(false);
+		this.updateLinkedArrays(false);
 		this.notifyLinkDeleted();
 	}
 
