@@ -687,4 +687,9 @@
 		direction: ltr;
 		-webkit-font-smoothing: antialiased;
 	}
+
+	/* Add this to your <style> section */
+	:global(path:focus) {
+		outline: none !important; /* Remove default outline */
+	}
 </style>
