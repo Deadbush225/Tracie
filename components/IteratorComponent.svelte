@@ -10,22 +10,9 @@
 	export let linkedArrays = []; // Array of IDs this iterator is linked to
 	export let color = "black";
 
-	import { deleteComponent, updateLinkEndpoints } from "../src/Whiteboard_back";
 	import { createEventDispatcher, onMount } from "svelte";
 	import ComponentBox from "./ComponentBox.svelte";
 	const dispatch = createEventDispatcher();
-	let container;
-
-	// Make pos reactive to x and y props
-	$: pos = { x, y };
-	let dragging = false;
-	let offset = { x: 0, y: 0 };
-
-	// Track total movement for history
-	let startPos = { x: 0, y: 0 };
-	let totalDx = 0;
-	let totalDy = 0;
-	let rect;
 
 	// Iterator state
 	let currentIndex = 0;
@@ -45,13 +32,16 @@
 	}
 
 	function notifyLinkedArrays() {
-		console.log(currentIndex);
-		dispatch("indexUpdate", {
-			iteratorId: id,
-			index: currentIndex,
-			linkedArrays,
-			color,
-		});
+		console.log(linkedArrays);
+		for (const link of linkedArrays) {
+			dispatch("indexUpdate", {
+				iteratorId: id,
+				index: currentIndex,
+				linkedArrayId: link.id,
+				color,
+				linkDirection: link.direction,
+			});
+		}
 	}
 
 	onMount(() => {

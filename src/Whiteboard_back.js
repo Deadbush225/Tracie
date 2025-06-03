@@ -172,15 +172,59 @@ class MoveMultipleComponentsCommand {
 class CreateLinkCommand {
 	constructor(link) {
 		this.link = link;
+		// Store component info to update linkedArrays
+		this.fromCompType = getComponentType(link.from.componentId);
+		this.toCompType = getComponentType(link.to.componentId);
 	}
 
 	execute() {
 		links.update((ls) => [...ls, this.link]);
+		// Add to linkedArrays
+		this.updateLinkedArrays(true);
 	}
 
 	undo() {
 		links.update((ls) => ls.filter((l) => l !== this.link));
+		// Remove from linkedArrays
+		this.updateLinkedArrays(false);
 	}
+
+	updateLinkedArrays(isAdd) {
+		components.update((comps) => {
+			return comps.map((comp) => {
+				if (
+					(comp.id === this.link.from.componentId && comp.type === "iterator" && isArrayType(this.toCompType)) ||
+					(comp.id === this.link.to.componentId && comp.type === "iterator" && isArrayType(this.fromCompType))
+				) {
+					const arrayId = isArrayType(this.fromCompType) ? this.link.from.componentId : this.link.to.componentId;
+					const direction = isArrayType(this.fromCompType)
+						? comp.id === this.link.to.componentId
+							? this.link.from.side
+							: this.link.to.side
+						: comp.id === this.link.from.componentId
+						? this.link.to.side
+						: this.link.from.side;
+
+					if (isAdd) {
+						return {
+							...comp,
+							linkedArrays: [...(comp.linkedArrays || []), { id: arrayId, direction }],
+						};
+					} else {
+						return {
+							...comp,
+							linkedArrays: (comp.linkedArrays || []).filter((link) => !(link.id === arrayId && link.direction === direction)),
+						};
+					}
+				}
+				return comp;
+			});
+		});
+	}
+}
+
+function isArrayType(type) {
+	return type === "array" || type === "2darray";
 }
 
 // Delete Link Command
@@ -211,22 +255,29 @@ class DeleteLinkCommand {
 		components.update((comps) => {
 			return comps.map((comp) => {
 				if (
-					(comp.id === this.link.from.componentId && comp.type === "iterator" && this.toCompType === "array") ||
-					(comp.id === this.link.to.componentId && comp.type === "iterator" && this.fromCompType === "array")
+					(comp.id === this.link.from.componentId && comp.type === "iterator" && isArrayType(this.toCompType)) ||
+					(comp.id === this.link.to.componentId && comp.type === "iterator" && isArrayType(this.fromCompType))
 				) {
-					const arrayId = this.fromCompType === "array" ? this.link.from.componentId : this.link.to.componentId;
+					const arrayId = isArrayType(this.fromCompType) ? this.link.from.componentId : this.link.to.componentId;
+					const direction = isArrayType(this.fromCompType)
+						? comp.id === this.link.to.componentId
+							? this.link.from.side
+							: this.link.to.side
+						: comp.id === this.link.from.componentId
+						? this.link.to.side
+						: this.link.from.side;
 
 					if (isAdd) {
 						// Add the array ID to linkedArrays
 						return {
 							...comp,
-							linkedArrays: [...(comp.linkedArrays || []), arrayId],
+							linkedArrays: [...(comp.linkedArrays || []), { id: arrayId, direction }],
 						};
 					} else {
 						// Remove the array ID from linkedArrays
 						return {
 							...comp,
-							linkedArrays: (comp.linkedArrays || []).filter((id) => id !== arrayId),
+							linkedArrays: (comp.linkedArrays || []).filter((link) => !(link.id === arrayId && link.direction === direction)),
 						};
 					}
 				}
@@ -368,32 +419,8 @@ export function createLink(fromNode, toNode) {
 				.padStart(6, "0"),
 	};
 
-	// Update linkedArrays when creating links between iterators and arrays
-	components.update((comps) => {
-		return comps.map((comp) => {
-			// Iterator -> Array link
-			if (comp.type === "iterator" && comp.id === fromNode.componentId) {
-				const toComp = comps.find((c) => c.id === toNode.componentId);
-				if (toComp && toComp.type === "array") {
-					return {
-						...comp,
-						linkedArrays: [...(comp.linkedArrays || []), toNode.componentId],
-					};
-				}
-			}
-			// Array -> Iterator link
-			else if (comp.type === "iterator" && comp.id === toNode.componentId) {
-				const fromComp = comps.find((c) => c.id === fromNode.componentId);
-				if (fromComp && fromComp.type === "array") {
-					return {
-						...comp,
-						linkedArrays: [...(comp.linkedArrays || []), fromNode.componentId],
-					};
-				}
-			}
-			return comp;
-		});
-	});
+	// Create the link command
+	executeCommand(new CreateLinkCommand(link));
 
 	// Notify iterators that a link was created
 	const event = new CustomEvent("iterator-link-created", {
@@ -404,8 +431,6 @@ export function createLink(fromNode, toNode) {
 	});
 	window.dispatchEvent(event);
 
-	// Create the link command
-	executeCommand(new CreateLinkCommand(link));
 	return link;
 }
 

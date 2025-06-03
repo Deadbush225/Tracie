@@ -24,7 +24,7 @@
 
 			// Process all iterators pointing to this array
 			store.updates.forEach((update, idx) => {
-				if (update.linkedArrays && update.linkedArrays.includes(id)) {
+				if (update.linkedArrayId === id) {
 					// Get color based on iterator position (or use iterator ID for consistency)
 					const iteratorComp = get(components).find((c) => c.id === update.iteratorId);
 					const color = iteratorComp?.color || update.color || "#ffeb3b";

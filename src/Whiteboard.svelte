@@ -58,16 +58,25 @@
 
 	// Handle iterator index updates
 	function handleIteratorIndexUpdate(event) {
-		const { iteratorId, index, linkedArrays } = event.detail;
+		const { iteratorId, index, linkedArrays, color, linkDirection, linkedArrayId } = event.detail;
 
 		iteratorStore.update((store) => {
 			// Add/update this iterator's entry
-			const updates = store.updates.filter((u) => u.iteratorId !== iteratorId);
-			updates.push({ iteratorId, index, linkedArrays });
+			// Filter based on iteratorId + linkedArrayId + linkDirection
+			const updates = store.updates.filter((u) => !(u.iteratorId === iteratorId && u.linkedArrayId === linkedArrayId && u.linkDirection === linkDirection));
+
+			updates.push({
+				iteratorId,
+				index,
+				linkedArrays,
+				color,
+				linkDirection,
+				linkedArrayId,
+			});
 
 			return {
 				updates,
-				lastUpdate: { iteratorId, index, linkedArrays },
+				lastUpdate: { iteratorId, index, linkedArrays, linkDirection },
 			};
 		});
 	}
