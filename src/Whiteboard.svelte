@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import ArrayComponent from "../components/ArrayComponent.svelte";
 	import Table2DComponent from "../components/Table2DComponent.svelte";
 	import PointerComponent from "../components/PointerComponent.svelte";
@@ -169,15 +169,8 @@
 		hoveredNode = null;
 	}
 
-	// Call this after any move or link change
-	// $: updateLinkTableAndLinks();
-
 	function handleComponentMove(event) {
 		const { id, dx, dy, final } = event.detail;
-
-		// Problem: There's duplicate movement happening because:
-		// 1. The component already updated its own position
-		// 2. We're applying the delta again to the component here
 
 		if (final) {
 			// Only record history on final move (mouse up)
@@ -189,16 +182,6 @@
 				moveComponent(id, event.detail.totalDx, event.detail.totalDy);
 			}
 		} else {
-			// During drag, we should NOT update positions again - components already updated themselves
-			// Let's update only OTHER selected components that need to move together
-			// if (selectedComponentIds.length > 1 && selectedComponentIds.includes(id)) {
-			// 	components.update((comps) =>
-			// 		comps.map((comp) => {
-			// 			return { ...comp, x: comp.x + dx, y: comp.y + dy };
-			// 		})
-			// 	);
-			// }
-
 			selectedComponentIds.forEach((val) => {
 				components.update((comps) =>
 					comps.map((comp) => {
@@ -216,7 +199,6 @@
 	}
 
 	// Helper to get endpoints and path for all links (reactive)
-
 	function handleLinkClick(link, event) {
 		event.stopPropagation();
 
@@ -419,15 +401,12 @@
 				}
 			});
 			if (selectionOverlay) {
-				selectionOverlay.style.left = `${minX}px`;
-				selectionOverlay.style.top = `${minY}px`;
-				selectionOverlay.style.width = `${maxX - minX}px`;
-				selectionOverlay.style.height = `${maxY - minY}px`;
-				selectionOverlay.style.opacity = "100%";
-			}
-		} else {
-			if (selectionOverlay) {
-				selectionOverlay.style.opacity = "0%";
+				const overlay = selectionOverlay as HTMLElement;
+				overlay.style.left = `${minX}px`;
+				overlay.style.top = `${minY}px`;
+				overlay.style.width = `${maxX - minX}px`;
+				overlay.style.height = `${maxY - minY}px`;
+				overlay.style.opacity = "100%";
 			}
 		}
 	}
@@ -527,6 +506,9 @@
 	on:mouseup={(e) => {
 		handleSelectionEnd(e);
 	}}
+	role="button"
+	tabindex="0"
+	on:keydown={() => {}}
 >
 	<div class="menu">
 		<button on:click={addArrayComponent}>Add Array</button>
@@ -547,7 +529,7 @@
 		{#each comps as comp (comp.id)}
 			{#if comp.type === "array"}
 				<!-- Wrap ArrayComponent so we can handle clicks but not interfere with component's own dragging -->
-				<div class="component-placeholder" on:mousedown={(e) => handleComponentClick(comp, e)}>
+				<div class="component-placeholder" on:mousedown={(e) => handleComponentClick(comp, e)} role="button" tabindex="0" on:keydown={() => {}}>
 					<ArrayComponent
 						id={comp.id}
 						x={comp.x}
@@ -555,31 +537,20 @@
 						length={comp.length}
 						on:nodeMouseDown={handleNodeMouseDown}
 						on:indexUpdate={handleIteratorIndexUpdate}
-						{hoveredNode}
 						on:move={handleComponentMove}
 						on:redraw={() => {}}
 					/>
 				</div>
 			{:else if comp.type === "2darray"}
-				<div class="component-placeholder" on:mousedown={(e) => handleComponentClick(comp, e)}>
-					<Table2DComponent
-						id={comp.id}
-						x={comp.x}
-						y={comp.y}
-						rows={comp.rows}
-						cols={comp.cols}
-						on:nodeMouseDown={handleNodeMouseDown}
-						{hoveredNode}
-						on:move={handleComponentMove}
-						on:redraw={() => {}}
-					/>
+				<div class="component-placeholder" on:mousedown={(e) => handleComponentClick(comp, e)} role="button" tabindex="0" on:keydown={() => {}}>
+					<Table2DComponent id={comp.id} x={comp.x} y={comp.y} rows={comp.rows} cols={comp.cols} on:nodeMouseDown={handleNodeMouseDown} on:move={handleComponentMove} on:redraw={() => {}} />
 				</div>
 			{:else if comp.type === "pointer"}
-				<div class="component-placeholder" on:mousedown={(e) => handleComponentClick(comp, e)}>
+				<div class="component-placeholder" on:mousedown={(e) => handleComponentClick(comp, e)} role="button" tabindex="0" on:keydown={() => {}}>
 					<PointerComponent id={comp.id} x={comp.x} y={comp.y} value={comp.value} on:nodeMouseDown={handleNodeMouseDown} {hoveredNode} on:move={handleComponentMove} on:redraw={() => {}} />
 				</div>
 			{:else if comp.type === "iterator"}
-				<div class="component-placeholder" on:mousedown={(e) => handleComponentClick(comp, e)}>
+				<div class="component-placeholder" on:mousedown={(e) => handleComponentClick(comp, e)} role="button" tabindex="0" on:keydown={() => {}}>
 					<IteratorComponent
 						id={comp.id}
 						x={comp.x}
@@ -603,7 +574,7 @@
 		{#each $linkEndpoints as { fromPos, toPos, link, path }}
 			{#if fromPos && toPos}
 				<!-- Thicker invisible path for easier selection -->
-				<path d={path} stroke="transparent" stroke-width="16" fill="none" style="pointer-events:stroke" on:click={(e) => handleLinkClick(link, e)} />
+				<path d={path} stroke="transparent" stroke-width="16" fill="none" style="pointer-events:stroke" on:click={(e) => handleLinkClick(link, e)} role="button" tabindex="0" on:keydown={() => {}} />
 				<path
 					d={path}
 					stroke={selectedLinks.includes(link) ? "#d32f2f" : link.color}
@@ -612,6 +583,9 @@
 					fill="none"
 					style="pointer-events:stroke"
 					on:click={(e) => handleLinkClick(link, e)}
+					role="button"
+					tabindex="0"
+					on:keydown={() => {}}
 				/>
 			{/if}
 		{/each}
@@ -661,12 +635,6 @@
 		gap: 10px;
 	}
 
-	:global(.selected-component) {
-		/* outline: 2px dashed #2196f3 !important;
-		outline-offset: 2px;
-		box-shadow: 0 0 12px rgba(33, 150, 243, 0.5) !important; */
-	}
-
 	.group-selection-box {
 		outline: 2px dashed #2196f3 !important;
 		outline-offset: 2px;
@@ -675,11 +643,6 @@
 		z-index: 0;
 		pointer-events: none; /* This makes mouse events pass through */
 		opacity: 0%;
-	}
-
-	.component-wrapper {
-		position: relative;
-		cursor: pointer;
 	}
 
 	.selection-box {
