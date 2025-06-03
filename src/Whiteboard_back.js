@@ -544,12 +544,31 @@ export let linkEndpoints = writable([]);
 let usePathfinding = false; // Toggle for pathfinding vs bezier
 
 function makeBezierPath(x1, y1, x2, y2) {
-	const dx = Math.abs(x2 - x1);
-	const dy = Math.abs(y2 - y1);
-	const c1x = x1 + (dx > dy ? dx / 2 : 0);
-	const c1y = y1 + (dx > dy ? 0 : dy / 2);
-	const c2x = x2 - (dx > dy ? dx / 2 : 0);
-	const c2y = y2 - (dx > dy ? 0 : dy / 2);
+	const dx = x2 - x1;
+	const dy = y2 - y1;
+	const absDx = Math.abs(dx);
+	const absDy = Math.abs(dy);
+
+	// Determine control point distances - larger for greater separation
+	const ctrlDist = Math.min(Math.max(absDx, absDy) * 0.5, 100);
+
+	// Calculate control points based on direction
+	let c1x, c1y, c2x, c2y;
+
+	if (absDx > absDy) {
+		// Horizontal dominant path
+		c1x = x1 + ctrlDist * Math.sign(dx);
+		c1y = y1;
+		c2x = x2 - ctrlDist * Math.sign(dx);
+		c2y = y2;
+	} else {
+		// Vertical dominant path
+		c1x = x1;
+		c1y = y1 + ctrlDist * Math.sign(dy);
+		c2x = x2;
+		c2y = y2 - ctrlDist * Math.sign(dy);
+	}
+
 	return `M${x1},${y1} C${c1x},${c1y} ${c2x},${c2y} ${x2},${y2}`;
 }
 
