@@ -180,6 +180,16 @@ class CreateLinkCommand {
 	execute() {
 		links.update((ls) => [...ls, this.link]);
 		// Add to linkedArrays
+
+		// Notify iterators that a link was created
+		const event = new CustomEvent("iterator-link-created", {
+			detail: {
+				fromId: this.link.from.componentId,
+				toId: this.link.to.componentId,
+			},
+		});
+		window.dispatchEvent(event);
+
 		this.updateLinkedArrays(true);
 	}
 
@@ -187,6 +197,7 @@ class CreateLinkCommand {
 		links.update((ls) => ls.filter((l) => l !== this.link));
 		// Remove from linkedArrays
 		this.updateLinkedArrays(false);
+		this.notifyLinkDeleted();
 	}
 
 	updateLinkedArrays(isAdd) {
@@ -221,6 +232,34 @@ class CreateLinkCommand {
 			});
 		});
 	}
+
+	notifyLinkDeleted() {
+		console.log("NOTIFY DELETED LINK: SEND");
+		// Determine which component is the iterator and which is the array
+		let iteratorId, arrayId, direction;
+
+		if (this.fromCompType === "iterator" && isArrayType(this.toCompType)) {
+			iteratorId = this.link.from.componentId;
+			arrayId = this.link.to.componentId;
+			direction = this.link.to.side;
+		} else if (this.toCompType === "iterator" && isArrayType(this.fromCompType)) {
+			iteratorId = this.link.to.componentId;
+			arrayId = this.link.from.componentId;
+			direction = this.link.from.side;
+		} else {
+			return; // Not an iterator-array link
+		}
+
+		// Dispatch an event to clear highlights
+		const event = new CustomEvent("iterator-link-deleted", {
+			detail: {
+				iteratorId,
+				linkedArrayId: arrayId,
+				linkDirection: direction,
+			},
+		});
+		window.dispatchEvent(event);
+	}
 }
 
 function isArrayType(type) {
@@ -249,6 +288,15 @@ class DeleteLinkCommand {
 
 		// Add back to linkedArrays
 		this.updateLinkedArrays(true);
+
+		// Notify iterators that a link was created
+		const event = new CustomEvent("iterator-link-created", {
+			detail: {
+				fromId: this.link.from.componentId,
+				toId: this.link.to.componentId,
+			},
+		});
+		window.dispatchEvent(event);
 	}
 
 	updateLinkedArrays(isAdd) {
@@ -450,16 +498,6 @@ export function createLink(fromNode, toNode) {
 
 	// Create the link command
 	executeCommand(new CreateLinkCommand(link));
-
-	// Notify iterators that a link was created
-	const event = new CustomEvent("iterator-link-created", {
-		detail: {
-			fromId: fromNode.componentId,
-			toId: toNode.componentId,
-		},
-	});
-	window.dispatchEvent(event);
-
 	return link;
 }
 
