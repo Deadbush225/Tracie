@@ -926,19 +926,21 @@ export function updateLinkEndpoints() {
 }
 
 // In Whiteboard_back.js
-export function addNodeComponent() {
+export function addNodeComponent(x = 100, y = 100) {
 	const value = prompt("Enter node value:");
 
 	const component = {
 		id: nextId++,
 		type: "node",
-		x: 100,
-		y: 100,
+		x,
+		y,
 		value: value || "",
 		color: generateColor(nextId),
 	};
 
 	executeCommand(new AddComponentCommand(component));
+
+	return component.id;
 }
 
 // Subscribe to both components and links

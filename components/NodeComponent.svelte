@@ -7,9 +7,18 @@
 	export let y = 0;
 	export let value = "";
 	export let class_ = "";
+	export let selected = false; // Add this to track selection state
 
 	const dispatch = createEventDispatcher();
 	let editing = false;
+
+	// Handle creating a new connected node
+	function createNodeInDirection(direction) {
+		dispatch("createConnectedNode", {
+			sourceId: id,
+			direction,
+		});
+	}
 
 	function handleDblClick() {
 		editing = true;
@@ -61,6 +70,13 @@
 				></div>
 			</div> -->
 		</div>
+		<!-- Plus buttons (show only when selected) -->
+		{#if selected}
+			<button class="add-node-btn top" on:click={() => createNodeInDirection("top")}>+</button>
+			<button class="add-node-btn right" on:click={() => createNodeInDirection("right")}>+</button>
+			<button class="add-node-btn bottom" on:click={() => createNodeInDirection("bottom")}>+</button>
+			<button class="add-node-btn left" on:click={() => createNodeInDirection("left")}>+</button>
+		{/if}
 	</div>
 </ComponentBox>
 
@@ -99,6 +115,53 @@
 		outline: none;
 	}
 
+	/* Plus button styling */
+	.add-node-btn {
+		position: absolute;
+		width: 24px;
+		height: 24px;
+		background: #1976d2;
+		color: white;
+		border: none;
+		border-radius: 50%;
+		font-size: 16px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+		box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+		z-index: 10;
+	}
+
+	.add-node-btn:hover {
+		background: #0d47a1;
+	}
+
+	.add-node-btn.top {
+		top: -30px;
+		left: 50%;
+		transform: translateX(-50%);
+	}
+
+	.add-node-btn.right {
+		right: -30px;
+		top: 50%;
+		transform: translateY(-50%);
+	}
+
+	.add-node-btn.bottom {
+		bottom: -30px;
+		left: 50%;
+		transform: translateX(-50%);
+	}
+
+	.add-node-btn.left {
+		left: -30px;
+		top: 50%;
+		transform: translateY(-50%);
+	}
+
+	/* Custom Node */
 	.next-pointer {
 		position: absolute;
 		right: 0;

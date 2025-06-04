@@ -51,6 +51,86 @@
 	$: comps = $components;
 	$: ls = $links;
 
+	function handleCreateConnectedNode(event) {
+		console.log("New Node Created");
+		const { sourceId, direction } = event.detail;
+		console.log(event.detail);
+		const sourceComponent = $components.find((c) => c.id === sourceId);
+		if (!sourceComponent) return;
+
+		// Calculate the position for the new node
+		let newX = sourceComponent.x;
+		let newY = sourceComponent.y;
+		const offset = 150; // Distance between nodes
+
+		switch (direction) {
+			case "top":
+				newY -= offset;
+				break;
+			case "right":
+				newX += offset;
+				break;
+			case "bottom":
+				newY += offset;
+				break;
+			case "left":
+				newX -= offset;
+				break;
+		}
+
+		// Create the new node using the proper function
+		const newNodeId = addNodeComponent(newX, newY);
+		const newNode = $components.find((c) => c.id === newNodeId);
+		if (!newNode) return;
+
+		// Create a link between the nodes
+		const fromSide = direction === "top" ? "top" : direction === "right" ? "right" : direction === "bottom" ? "bottom" : "left";
+
+		const toSide = direction === "top" ? "bottom" : direction === "right" ? "left" : direction === "bottom" ? "top" : "right";
+
+		// Use the global getNodeCenterMap for the source node if available
+		const sourceGetNodeCenter =
+			window.__getNodeCenterMap?.[`${sourceId}-${fromSide}`] ||
+			(() => {
+				// Fallback implementation if map doesn't exist
+				const sourceEl = document.getElementById(`comp-${sourceId}`);
+				if (!sourceEl) return { x: 0, y: 0 };
+				const rect = sourceEl.getBoundingClientRect();
+				return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+			});
+
+		// For the new node, create a temporary function until it's properly mounted
+		const targetGetNodeCenter = () => {
+			const targetEl = document.getElementById(`comp-${newNode.id}`);
+			if (!targetEl) return { x: newX + 60, y: newY + 20 }; // Default approximation
+
+			const rect = targetEl.getBoundingClientRect();
+			return {
+				x: rect.left + (toSide === "right" ? rect.width : toSide === "left" ? 0 : rect.width / 2),
+				y: rect.top + (toSide === "bottom" ? rect.height : toSide === "top" ? 0 : rect.height / 2),
+			};
+		};
+
+		createLink(
+			{
+				componentId: sourceId,
+				side: fromSide,
+				getNodeCenter: sourceGetNodeCenter,
+			},
+			{
+				componentId: newNode.id,
+				side: toSide,
+				getNodeCenter: targetGetNodeCenter,
+			}
+		);
+
+		console.log("After Custom Create Call");
+		console.log($links);
+
+		// Select the new node
+		selectedComponentIds = [newNode.id];
+	}
+
 	// Create a store for iterator events
 	const iteratorStore = writable({
 		updates: [], // Store updates from all iterators
@@ -368,6 +448,10 @@
 	});
 
 	function handleComponentClick(comp, event) {
+		// Check if the event target is inside a component (avoid double selection if clicking on child elements)
+		const isComponent = event.target.closest(".component-placeholder");
+		if (!isComponent) return;
+
 		console.log("Component clicked:", comp.id);
 		// Don't select if we're dragging a link
 		if (draggingLink) {
@@ -585,12 +669,11 @@
 						id={comp.id}
 						x={comp.x}
 						y={comp.y}
-						label={comp.label}
+						value={comp.label}
+						selected={selectedComponentIds.includes(comp.id)}
 						on:nodeMouseDown={handleNodeMouseDown}
-						on:indexUpdate={handleIteratorIndexUpdate}
-						{hoveredNode}
+						on:createConnectedNode={handleCreateConnectedNode}
 						on:move={handleComponentMove}
-						on:redraw={() => {}}
 					></NodeComponent>
 				</div>
 			{/if}
