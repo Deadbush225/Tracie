@@ -28,7 +28,7 @@
 		addNodeComponent,
 	} from "./Whiteboard_back";
 
-	import { onMount, setContext } from "svelte";
+	import { onMount, setContext, tick } from "svelte";
 	import { updateSvgRect2, svgRect } from "./ui_store";
 	import { writable } from "svelte/store";
 
@@ -102,7 +102,7 @@
 		// For the new node, create a temporary function until it's properly mounted
 		const targetGetNodeCenter = () => {
 			const targetEl = document.getElementById(`comp-${newNode.id}`);
-			if (!targetEl) return { x: newX + 60, y: newY + 20 }; // Default approximation
+			if (!targetEl) return { x: newX, y: newY }; // Default approximation
 
 			const rect = targetEl.getBoundingClientRect();
 			return {
@@ -111,18 +111,20 @@
 			};
 		};
 
-		createLink(
-			{
-				componentId: sourceId,
-				side: fromSide,
-				getNodeCenter: sourceGetNodeCenter,
-			},
-			{
-				componentId: newNode.id,
-				side: toSide,
-				getNodeCenter: targetGetNodeCenter,
-			}
-		);
+		tick().then(() => {
+			createLink(
+				{
+					componentId: sourceId,
+					side: fromSide,
+					getNodeCenter: sourceGetNodeCenter,
+				},
+				{
+					componentId: newNode.id,
+					side: toSide,
+					getNodeCenter: targetGetNodeCenter,
+				}
+			);
+		});
 
 		console.log("After Custom Create Call");
 		console.log($links);
