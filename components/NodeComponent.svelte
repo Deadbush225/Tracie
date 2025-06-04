@@ -72,10 +72,10 @@
 		</div>
 		<!-- Plus buttons (show only when selected) -->
 		{#if selected}
-			<button class="add-node-btn top" on:click={() => createNodeInDirection("top")}>+</button>
-			<button class="add-node-btn right" on:click={() => createNodeInDirection("right")}>+</button>
-			<button class="add-node-btn bottom" on:click={() => createNodeInDirection("bottom")}>+</button>
-			<button class="add-node-btn left" on:click={() => createNodeInDirection("left")}>+</button>
+			<button class="add-node-btn top" on:click={() => createNodeInDirection("top")}>&#43;</button>
+			<button class="add-node-btn right" on:click={() => createNodeInDirection("right")}>&#43;</button>
+			<button class="add-node-btn bottom" on:click={() => createNodeInDirection("bottom")}>&#43;</button>
+			<button class="add-node-btn left" on:click={() => createNodeInDirection("left")}>&#43;</button>
 		{/if}
 	</div>
 </ComponentBox>
@@ -131,6 +131,8 @@
 		cursor: pointer;
 		box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 		z-index: 10;
+		padding: 0;
+		padding-bottom: 3px;
 	}
 
 	.add-node-btn:hover {

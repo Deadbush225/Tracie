@@ -61,25 +61,26 @@
 		// Calculate the position for the new node
 		let newX = sourceComponent.x;
 		let newY = sourceComponent.y;
-		const offset = 150; // Distance between nodes
+		const offset_rl = 180; // Distance between nodes
+		const offset_tb = 100; // Distance between nodes
 
 		switch (direction) {
 			case "top":
-				newY -= offset;
+				newY -= offset_tb;
 				break;
 			case "right":
-				newX += offset;
+				newX += offset_rl;
 				break;
 			case "bottom":
-				newY += offset;
+				newY += offset_tb;
 				break;
 			case "left":
-				newX -= offset;
+				newX -= offset_rl;
 				break;
 		}
 
 		// Create the new node using the proper function
-		const newNodeId = addNodeComponent(newX, newY);
+		const newNodeId = addNodeComponent("NewNode", newX, newY);
 		const newNode = $components.find((c) => c.id === newNodeId);
 		if (!newNode) return;
 
@@ -105,10 +106,26 @@
 			if (!targetEl) return { x: newX, y: newY }; // Default approximation
 
 			const rect = targetEl.getBoundingClientRect();
-			return {
-				x: rect.left + (toSide === "right" ? rect.width : toSide === "left" ? 0 : rect.width / 2),
-				y: rect.top + (toSide === "bottom" ? rect.height : toSide === "top" ? 0 : rect.height / 2),
-			};
+			const width = rect ? rect.width : 120;
+			const height = rect ? rect.height : 60;
+
+			let _x = rect.left;
+			let _y = rect.top;
+
+			switch (toSide) {
+				case "top":
+					return { x: _x + width / 2, y: _y - 6 };
+				case "bottom":
+					return { x: _x + width / 2, y: _y + height + 6 };
+				case "left":
+					return { x: _x - 6, y: _y + height / 2 };
+				case "right":
+					return { x: _x + width + 6, y: _y + height / 2 };
+			}
+			// return {
+			// 	x: rect.left + (toSide === "right" ? rect.width : toSide === "left" ? 0 : rect.width / 2),
+			// 	y: rect.top + (toSide === "bottom" ? rect.height : toSide === "top" ? 0 : rect.height / 2),
+			// };
 		};
 
 		tick().then(() => {
@@ -671,7 +688,7 @@
 						id={comp.id}
 						x={comp.x}
 						y={comp.y}
-						value={comp.label}
+						value={comp.value}
 						selected={selectedComponentIds.includes(comp.id)}
 						on:nodeMouseDown={handleNodeMouseDown}
 						on:createConnectedNode={handleCreateConnectedNode}

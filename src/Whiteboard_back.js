@@ -926,8 +926,10 @@ export function updateLinkEndpoints() {
 }
 
 // In Whiteboard_back.js
-export function addNodeComponent(x = 100, y = 100) {
-	const value = prompt("Enter node value:");
+export function addNodeComponent(value, x = 100, y = 100) {
+	if (!value) {
+		value = prompt("Enter node value:");
+	}
 
 	const component = {
 		id: nextId++,
