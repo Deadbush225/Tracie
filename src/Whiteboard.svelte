@@ -139,7 +139,11 @@
 				toSide = "top";
 				break;
 			case "bottom":
-				fromSide = isBinaryNode ? "bottom-right" : (isNaryNode ? "bottom" : "bottom");
+				fromSide = isBinaryNode
+					? "bottom-right"
+					: isNaryNode
+						? "bottom"
+						: "bottom";
 				toSide = "top";
 				break;
 			case "bottom-left":
@@ -378,8 +382,29 @@
 			draggingLink &&
 			!linkExists(draggingLink.from, hoveredNode)
 		) {
-			// Create the link using the command system
-			createLink(draggingLink.from, hoveredNode);
+			// Validate connection for binary nodes - prevent bottom-to-bottom connections
+			const fromComp = $components.find(
+				(c) => c.id === draggingLink.from.componentId
+			);
+			const toComp = $components.find((c) => c.id === hoveredNode.componentId);
+
+			const isBinaryConnection =
+				(fromComp && fromComp.type === "binary-node") ||
+				(toComp && toComp.type === "binary-node");
+
+			const isBottomToBottom =
+				(draggingLink.from.side === "bottom" ||
+					draggingLink.from.side === "bottom-left" ||
+					draggingLink.from.side === "bottom-right") &&
+				(hoveredNode.side === "bottom" ||
+					hoveredNode.side === "bottom-left" ||
+					hoveredNode.side === "bottom-right");
+
+			// Only create link if it's not a binary node with bottom-to-bottom connection
+			if (!isBinaryConnection || !isBottomToBottom) {
+				// Create the link using the command system
+				createLink(draggingLink.from, hoveredNode);
+			}
 		}
 		draggingLink = null;
 		hoveredNode = null;
@@ -432,6 +457,193 @@
 		}
 
 		updateLinks(); // Ensure links are updated immediately
+
+		// Auto-layout tree after movement
+		if (final) {
+			const movedIds = selectedComponentIds.includes(id)
+				? selectedComponentIds
+				: [id];
+
+			// Check if any moved component is a tree node
+			movedIds.forEach((nodeId) => {
+				const node = $components.find((c) => c.id === nodeId);
+				if (
+					node &&
+					(node.type === "binary-node" || node.type === "nary-node")
+				) {
+					autoLayoutTree(nodeId);
+				}
+			});
+		}
+	}
+
+	// Get all children of a node with their connection info
+	function getNodeChildren(nodeId) {
+		return $links
+			.filter((link) => link.from.componentId === nodeId)
+			.map((link) => ({
+				id: link.to.componentId,
+				side: link.from.side,
+			}));
+	}
+
+	// Get parent of a node
+	function getNodeParent(nodeId) {
+		const parentLink = $links.find((link) => link.to.componentId === nodeId);
+		return parentLink ? parentLink.from.componentId : null;
+	}
+
+	// Calculate bounding box of a subtree (including all descendants)
+	function calculateSubtreeBounds(nodeId, visited = new Set()) {
+		if (visited.has(nodeId)) {
+			return { width: 0, height: 0, depth: 0 };
+		}
+		visited.add(nodeId);
+
+		const node = $components.find((c) => c.id === nodeId);
+		if (!node) return { width: 0, height: 0, depth: 0 };
+
+		const children = getNodeChildren(nodeId);
+
+		// Base case: leaf node
+		if (children.length === 0) {
+			return { width: 80, height: 60, depth: 1 }; // Approximate node size
+		}
+
+		// Calculate bounds for all children
+		const childBounds = children.map((child) =>
+			calculateSubtreeBounds(child.id, visited)
+		);
+
+		// Total width is sum of all children widths plus spacing
+		const spacing = 40;
+		const totalWidth =
+			childBounds.reduce((sum, bounds) => sum + bounds.width, 0) +
+			(children.length - 1) * spacing;
+
+		// Height includes vertical spacing between levels
+		const maxChildHeight = Math.max(...childBounds.map((b) => b.height), 0);
+		const totalHeight = 100 + maxChildHeight; // 100px vertical spacing between levels
+
+		// Depth is max child depth + 1
+		const maxDepth = Math.max(...childBounds.map((b) => b.depth), 0);
+
+		return {
+			width: Math.max(totalWidth, 80), // At least as wide as the node itself
+			height: totalHeight,
+			depth: maxDepth + 1,
+			childBounds,
+		};
+	}
+
+	// Layout subtree starting from a node, positioning children relative to parent
+	function layoutSubtree(nodeId, parentX, parentY, visited = new Set()) {
+		if (visited.has(nodeId)) return [];
+		visited.add(nodeId);
+
+		const node = $components.find((c) => c.id === nodeId);
+		if (!node) return [];
+
+		const positions = [];
+		const children = getNodeChildren(nodeId);
+
+		if (children.length === 0) {
+			// Leaf node - just record its position
+			return [{ id: nodeId, x: parentX, y: parentY }];
+		}
+
+		// Calculate bounds for each child subtree
+		const childBounds = children.map((child) =>
+			calculateSubtreeBounds(child.id, new Set([nodeId]))
+		);
+
+		// Calculate total width needed
+		const spacing = 40;
+		const totalWidth =
+			childBounds.reduce((sum, bounds) => sum + bounds.width, 0) +
+			(children.length - 1) * spacing;
+
+		// Start position (leftmost child)
+		let currentX = parentX - totalWidth / 2;
+
+		// Position each child
+		children.forEach((child, index) => {
+			const childWidth = childBounds[index].width;
+			const childCenterX = currentX + childWidth / 2;
+			const childY = parentY + 100; // Fixed vertical spacing
+
+			// Recursively layout this child's subtree
+			const childPositions = layoutSubtree(
+				child.id,
+				childCenterX,
+				childY,
+				visited
+			);
+			positions.push(...childPositions);
+
+			// Move to next child position
+			currentX += childWidth + spacing;
+		});
+
+		// Add current node position
+		positions.push({ id: nodeId, x: parentX, y: parentY });
+
+		return positions;
+	}
+
+	// Find the root of the tree containing a node
+	function findTreeRoot(nodeId) {
+		let currentId = nodeId;
+		let parent = getNodeParent(currentId);
+
+		// Keep going up until we find no parent
+		while (parent !== null) {
+			currentId = parent;
+			parent = getNodeParent(currentId);
+		}
+
+		return currentId;
+	}
+
+	// Auto-layout entire tree
+	async function autoLayoutTree(nodeId) {
+		const rootId = findTreeRoot(nodeId);
+		const rootNode = $components.find((c) => c.id === rootId);
+		if (!rootNode) return;
+
+		// Calculate layout positions starting from root
+		const positions = layoutSubtree(rootId, rootNode.x, rootNode.y, new Set());
+
+		// Collect all node IDs that will be repositioned
+		const repositionedIds = positions.map((p) => p.id);
+
+		// Apply positions
+		components.update((comps) => {
+			return comps.map((comp) => {
+				const newPos = positions.find((p) => p.id === comp.id);
+				if (newPos) {
+					return { ...comp, x: newPos.x, y: newPos.y };
+				}
+				return comp;
+			});
+		});
+
+		// Wait for Svelte to update the DOM with new positions
+		await tick();
+
+		// Update links after repositioning
+		updateLinks();
+
+		// Wait again for link positions to update
+		await tick();
+
+		// Optimize all links connected to repositioned nodes
+		const affectedLinks = $links.filter(
+			(link) =>
+				repositionedIds.includes(link.from.componentId) ||
+				repositionedIds.includes(link.to.componentId)
+		);
+		affectedLinks.forEach((link) => optimizeLinkPath(link));
 	}
 
 	// Helper to get endpoints and path for all links (reactive)
