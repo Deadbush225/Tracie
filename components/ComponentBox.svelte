@@ -149,6 +149,7 @@
 >
 	{#if deletable}
 		<button
+			on:mousedown|stopPropagation
 			on:click|stopPropagation={() => dispatch("delete", { id })}
 			class="delete-x"
 			title="Delete"
