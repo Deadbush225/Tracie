@@ -1,4 +1,5 @@
 <script>
+	import { get } from "svelte/store";
 	import { svgRect } from "../src/ui_store";
 
 	export let id;
@@ -95,26 +96,27 @@
 		const width = rect.width;
 		const height = rect.height;
 
+		// Component positions are relative to the container, same as SVG
 		switch (side) {
 			case "top":
 				return {
-					x: pos.x + svgRect.left + width / 2,
-					y: pos.y + svgRect.top - 6,
+					x: pos.x + width / 2,
+					y: pos.y - 6,
 				};
 			case "bottom":
 				return {
-					x: pos.x + svgRect.left + width / 2,
-					y: pos.y + svgRect.top + height + 6,
+					x: pos.x + width / 2,
+					y: pos.y + height + 6,
 				};
 			case "left":
 				return {
-					x: pos.x + svgRect.left - 6,
-					y: pos.y + svgRect.top + height / 2,
+					x: pos.x - 6,
+					y: pos.y + height / 2,
 				};
 			case "right":
 				return {
-					x: pos.x + svgRect.left + width + 6,
-					y: pos.y + svgRect.top + height / 2,
+					x: pos.x + width + 6,
+					y: pos.y + height / 2,
 				};
 		}
 	}

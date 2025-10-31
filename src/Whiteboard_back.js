@@ -1115,10 +1115,10 @@ export function updateLinkEndpoints() {
 			const path =
 				fromPos && toPos
 					? makeSmartOrBezierPath(
-							fromPos.x - svgRect.left,
-							fromPos.y - svgRect.top,
-							toPos.x - svgRect.left,
-							toPos.y - svgRect.top,
+							fromPos.x,
+							fromPos.y,
+							toPos.x,
+							toPos.y,
 							fromSide,
 							toSide,
 							link.from.componentId,
@@ -1222,5 +1222,10 @@ components.subscribe(() => {
 });
 
 links.subscribe(() => {
+	updateLinkEndpoints();
+});
+
+// Subscribe to svgRect to update link endpoints when scrolling
+svgRect.subscribe(() => {
 	updateLinkEndpoints();
 });

@@ -1,5 +1,6 @@
 <script>
 	import { createEventDispatcher, onMount } from "svelte";
+	import { get } from "svelte/store";
 	import { svgRect } from "../src/ui_store";
 	export let id;
 	export let x = 0;
@@ -70,8 +71,11 @@
 		const width = rect ? rect.width : 120;
 		const height = rect ? rect.height : 60;
 
-		let _x = x + svgRect.left;
-		let _y = y + svgRect.top;
+		// Component positions (x, y) are relative to the container
+		// SVG is also positioned relative to the same container at (0,0)
+		// So we can use x, y directly without adding svgRect offset
+		let _x = x;
+		let _y = y;
 
 		// Support custom connection point positions
 		switch (side) {

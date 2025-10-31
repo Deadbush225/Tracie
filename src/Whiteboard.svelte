@@ -299,14 +299,14 @@
 		if (!el) return null;
 		const rect = el.getBoundingClientRect();
 		const bounding_rect = {
-			left: rect.left - svgRect.left,
-			right: rect.right - svgRect.left,
-			top: rect.top - svgRect.top,
-			bottom: rect.bottom - svgRect.top,
+			left: rect.left - $svgRect.left,
+			right: rect.right - $svgRect.left,
+			top: rect.top - $svgRect.top,
+			bottom: rect.bottom - $svgRect.top,
 			width: rect.width,
 			height: rect.height,
-			centerX: (rect.left + rect.right) / 2 - svgRect.left,
-			centerY: (rect.top + rect.bottom) / 2 - svgRect.top,
+			centerX: (rect.left + rect.right) / 2 - $svgRect.left,
+			centerY: (rect.top + rect.bottom) / 2 - $svgRect.top,
 		};
 
 		return bounding_rect;
@@ -868,11 +868,13 @@
 	onMount(() => {
 		updateSvgRect();
 		window.addEventListener("resize", updateSvgRect);
+		window.addEventListener("scroll", updateSvgRect);
 		window.addEventListener("keydown", handleKeyDown);
 
 		window.addEventListener("iterator-link-deleted", handleIteratorLinkDeleted);
 		return () => {
 			window.removeEventListener("resize", updateSvgRect);
+			window.removeEventListener("scroll", updateSvgRect);
 			window.removeEventListener("keydown", handleKeyDown);
 			window.removeEventListener(
 				"iterator-link-deleted",
@@ -915,6 +917,7 @@
 	// Selection box visualizer (add it to the relative position container)
 	$: {
 		$components;
+		$svgRect; // Add dependency on svgRect to update on scroll
 		console.log("Creating selection visualizer");
 
 		const selectionOverlay = document.querySelector(".group-selection-box");
@@ -957,12 +960,12 @@
 		// Only start selection box if not clicking on a component
 		if (event.target === svgContainer) {
 			selectionStartPos = {
-				x: event.clientX - svgRect.left,
-				y: event.clientY - svgRect.top,
+				x: event.clientX - $svgRect.left,
+				y: event.clientY - $svgRect.top,
 			};
 			selectionBox = {
-				x: event.clientX - svgRect.left,
-				y: event.clientY - svgRect.top,
+				x: event.clientX - $svgRect.left,
+				y: event.clientY - $svgRect.top,
 				width: 0,
 				height: 0,
 			};
@@ -975,8 +978,8 @@
 	function handleSelectionMove(event) {
 		if (selectionStartPos) {
 			// Update selection box dimensions
-			const currentX = event.clientX - svgRect.left;
-			const currentY = event.clientY - svgRect.top;
+			const currentX = event.clientX - $svgRect.left;
+			const currentY = event.clientY - $svgRect.top;
 
 			selectionBox = {
 				x: Math.min(selectionStartPos.x, currentX),
@@ -998,10 +1001,10 @@
 					const originalRect = el.getBoundingClientRect();
 					// Create a new object with adjusted coordinates
 					const rect = {
-						left: originalRect.left - svgRect.left,
-						right: originalRect.right - svgRect.left,
-						top: originalRect.top - svgRect.top,
-						bottom: originalRect.bottom - svgRect.top,
+						left: originalRect.left - $svgRect.left,
+						right: originalRect.right - $svgRect.left,
+						top: originalRect.top - $svgRect.top,
+						bottom: originalRect.bottom - $svgRect.top,
 					};
 
 					// Check if component intersects with selection box
@@ -1283,10 +1286,10 @@
 				{@const toPos = hoveredNode.getNodeCenter()}
 				<path
 					d={makeSmartOrBezierPath(
-						fromPos.x - svgRect.left,
-						fromPos.y - svgRect.top,
-						toPos.x - svgRect.left,
-						toPos.y - svgRect.top,
+						fromPos.x,
+						fromPos.y,
+						toPos.x,
+						toPos.y,
 						draggingLink.from.side,
 						hoveredNode.side,
 						draggingLink.from.componentId,
@@ -1300,10 +1303,10 @@
 			{:else}
 				<!-- Show temp dashed line from node to mouse -->
 				<line
-					x1={fromPos.x - svgRect.left}
-					y1={fromPos.y - svgRect.top}
-					x2={mouse.x - svgRect.left}
-					y2={mouse.y - svgRect.top}
+					x1={fromPos.x}
+					y1={fromPos.y}
+					x2={mouse.x - $svgRect.left}
+					y2={mouse.y - $svgRect.top}
 					stroke="#1976d2"
 					stroke-width="2"
 					stroke-dasharray="6,6"
