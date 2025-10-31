@@ -114,41 +114,45 @@
 		if (!newNode) return;
 
 		// Create a link between the nodes
-		// Map primary and secondary directions
+		// Map primary and secondary directions based on component types
 		let fromSide, toSide;
+
+		// Determine appropriate sides based on component type
+		const isBinaryNode = sourceComponent.type === "binary-node";
+		const isNaryNode = sourceComponent.type === "nary-node";
 
 		switch (direction) {
 			case "top":
 				fromSide = "top";
-				toSide = "bottom";
+				toSide = isBinaryNode || isNaryNode ? "bottom" : "bottom";
 				break;
 			case "top-right":
-				fromSide = "top";
-				toSide = "bottom";
+				fromSide = isBinaryNode ? "top" : "top";
+				toSide = isBinaryNode ? "bottom" : "bottom";
 				break;
 			case "right":
-				fromSide = "right";
+				fromSide = isBinaryNode ? "bottom-right" : "right";
 				toSide = "left";
 				break;
 			case "bottom-right":
-				fromSide = "bottom";
+				fromSide = isBinaryNode ? "bottom-right" : "bottom";
 				toSide = "top";
 				break;
 			case "bottom":
-				fromSide = "bottom";
+				fromSide = isBinaryNode ? "bottom-right" : (isNaryNode ? "bottom" : "bottom");
 				toSide = "top";
 				break;
 			case "bottom-left":
-				fromSide = "bottom";
+				fromSide = isBinaryNode ? "bottom-left" : "bottom";
 				toSide = "top";
 				break;
 			case "left":
-				fromSide = "left";
+				fromSide = isBinaryNode ? "bottom-left" : "left";
 				toSide = "right";
 				break;
 			case "top-left":
-				fromSide = "top";
-				toSide = "bottom";
+				fromSide = isBinaryNode ? "top" : "top";
+				toSide = isBinaryNode ? "bottom" : "bottom";
 				break;
 			default:
 				fromSide = "right";
