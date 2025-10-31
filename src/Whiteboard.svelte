@@ -247,6 +247,24 @@
 
 		// Select the new node
 		selectedComponentIds = [newNode.id];
+
+		// Auto-layout the tree after a brief delay to ensure link is created
+		// Only apply to binary and n-ary nodes
+		if (
+			sourceComponent.type === "binary-node" ||
+			sourceComponent.type === "nary-node"
+		) {
+			setTimeout(async () => {
+				// Find the root of the tree that contains this node
+				const rootId = findTreeRoot(sourceComponent.id);
+				if (rootId !== null && rootId !== undefined) {
+					console.log("Auto-layouting tree from root:", rootId);
+					await autoLayoutTree(rootId);
+				} else {
+					console.log("Could not find tree root for node:", sourceComponent.id);
+				}
+			}, 150); // Increased delay to ensure everything is ready
+		}
 	}
 
 	// Handle component deletion from × button
