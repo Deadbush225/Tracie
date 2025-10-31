@@ -15,6 +15,10 @@
 	// New prop: border color (default #333)
 	export let borderColor = "#333";
 
+	// Constants for connection point positioning
+	const CONNECTION_POINT_OFFSET = 18; // Distance from component edge
+	const CONNECTION_POINT_SIZE = 12; // Size of the connection point circle
+
 	let container;
 	let dragging = false;
 	let offset = { x: 0, y: 0 };
@@ -81,28 +85,39 @@
 		let _x = x;
 		let _y = y;
 
+		// Calculate common positions
+		const centerX = _x + width / 2;
+		const centerY = _y + height / 2;
+		const leftEdge = _x - CONNECTION_POINT_OFFSET / 2;
+		const rightEdge = _x + width + CONNECTION_POINT_OFFSET / 2;
+		const topEdge = _y - CONNECTION_POINT_OFFSET / 2;
+		const bottomEdge = _y + height + CONNECTION_POINT_OFFSET / 2;
+		const leftThird = _x + width * 0.3;
+		const rightThird = _x + width * 0.7;
+		const upperQuarter = _y + height * 0.25;
+
 		// Support custom connection point positions
 		switch (side) {
 			case "top":
-				return { x: _x + width / 2, y: _y - 6 };
+				return { x: centerX, y: topEdge };
 			case "bottom":
-				return { x: _x + width / 2, y: _y + height + 6 };
+				return { x: centerX, y: bottomEdge };
 			case "left":
-				return { x: _x - 6, y: _y + height / 2 };
+				return { x: leftEdge, y: centerY };
 			case "right":
-				return { x: _x + width + 6, y: _y + height / 2 };
+				return { x: rightEdge, y: centerY };
 			// Binary tree connections
 			case "bottom-left":
-				return { x: _x + width * 0.3, y: _y + height + 6 };
+				return { x: leftThird, y: bottomEdge };
 			case "bottom-right":
-				return { x: _x + width * 0.7, y: _y + height + 6 };
+				return { x: rightThird, y: bottomEdge };
 			// Diagonal connections
 			case "top-left":
-				return { x: _x - 6, y: _y + height * 0.25 };
+				return { x: leftEdge, y: upperQuarter };
 			case "top-right":
-				return { x: _x + width + 6, y: _y + height * 0.25 };
+				return { x: rightEdge, y: upperQuarter };
 			default:
-				return { x: _x + width / 2, y: _y + height / 2 };
+				return { x: centerX, y: centerY };
 		}
 	}
 
@@ -126,7 +141,7 @@
 	bind:this={container}
 	id={"comp-" + id}
 	class={class_}
-	style="position:absolute; left:{x}px; top:{y}px; border:2px solid {borderColor}; background:#fff; border-radius:{borderRadius}; box-shadow:0 2px 8px #0002; user-select:none; cursor:{dragging
+	style="--connection-point-size:{CONNECTION_POINT_SIZE}px; position:absolute; left:{x}px; top:{y}px; border:2px solid {borderColor}; background:#fff; border-radius:{borderRadius}; box-shadow:0 2px 8px #0002; user-select:none; cursor:{dragging
 		? 'grabbing'
 		: 'default'}; padding:8px;"
 	on:mousedown={handleMouseDown}
@@ -143,6 +158,11 @@
 	{/if}
 	<!-- Nodes at custom connection points -->
 	{#each connectionPoints as side}
+		{@const nodeOffset = `-${CONNECTION_POINT_OFFSET - 2}px`}
+		{@const centerPos = "50%"}
+		{@const leftThirdPos = "30%"}
+		{@const rightThirdPos = "70%"}
+		{@const upperQuarterPos = "25%"}
 		<div
 			class="node {hoveredNode &&
 			hoveredNode.componentId === id &&
@@ -152,28 +172,28 @@
 			data-comp-id={id}
 			data-side={side}
 			style="{side === 'top'
-				? 'left:50%; top:-14px; transform:translateX(-50%);'
+				? `left:${centerPos}; top:${nodeOffset}; transform:translateX(-50%);`
 				: ''}
                    {side === 'bottom'
-				? 'left:50%; bottom:-14px; transform:translateX(-50%);'
+				? `left:${centerPos}; bottom:${nodeOffset}; transform:translateX(-50%);`
 				: ''}
                    {side === 'left'
-				? 'left:-14px; top:50%; transform:translateY(-50%);'
+				? `left:${nodeOffset}; top:${centerPos}; transform:translateY(-50%);`
 				: ''}
                    {side === 'right'
-				? 'right:-14px; top:50%; transform:translateY(-50%);'
+				? `right:${nodeOffset}; top:${centerPos}; transform:translateY(-50%);`
 				: ''}
                    {side === 'bottom-left'
-				? 'left:30%; bottom:-14px; transform:translateX(-50%);'
+				? `left:${leftThirdPos}; bottom:${nodeOffset}; transform:translateX(-50%);`
 				: ''}
                    {side === 'bottom-right'
-				? 'left:70%; bottom:-14px; transform:translateX(-50%);'
+				? `left:${rightThirdPos}; bottom:${nodeOffset}; transform:translateX(-50%);`
 				: ''}
                    {side === 'top-left'
-				? 'left:-14px; top:25%; transform:translateY(-50%);'
+				? `left:${nodeOffset}; top:${upperQuarterPos}; transform:translateY(-50%);`
 				: ''}
                    {side === 'top-right'
-				? 'right:-14px; top:25%; transform:translateY(-50%);'
+				? `right:${nodeOffset}; top:${upperQuarterPos}; transform:translateY(-50%);`
 				: ''}"
 			on:mousedown|stopPropagation={() =>
 				dispatch("nodeMouseDown", {
@@ -190,8 +210,8 @@
 
 <style>
 	.node {
-		width: 12px;
-		height: 12px;
+		width: var(--connection-point-size, 12px);
+		height: var(--connection-point-size, 12px);
 		background: #1976d2;
 		border-radius: 50%;
 		position: absolute;
