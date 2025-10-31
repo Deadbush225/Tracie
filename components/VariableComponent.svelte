@@ -20,11 +20,25 @@
 	}
 </script>
 
-<ComponentBox {id} {x} {y} {class_} on:move={(e) => dispatch("move", e.detail)} on:nodeMouseDown={(e) => dispatch("nodeMouseDown", e.detail)} on:delete={(e) => dispatch("delete", e.detail)}>
+<ComponentBox
+	{id}
+	{x}
+	{y}
+	{class_}
+	on:move={(e) => dispatch("move", e.detail)}
+	on:nodeMouseDown={(e) => dispatch("nodeMouseDown", e.detail)}
+	on:delete={(e) => dispatch("delete", e.detail)}
+>
 	<div class="node-container">
 		<!-- The circular node -->
 		<div class="node" style="background: {color};">
-			<input class="node-value" type="text" bind:value on:input={handleValueChange} placeholder="value" />
+			<input
+				class="node-value"
+				type="text"
+				bind:value
+				on:input={handleValueChange}
+				placeholder="value"
+			/>
 		</div>
 
 		<!-- Connection points -->

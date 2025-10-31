@@ -249,6 +249,13 @@
 		selectedComponentIds = [newNode.id];
 	}
 
+	// Handle component deletion from × button
+	function handleComponentDelete(id) {
+		deleteComponent(id);
+		// Remove from selection if it was selected
+		selectedComponentIds = selectedComponentIds.filter((cid) => cid !== id);
+	}
+
 	// Create a store for iterator events
 	const iteratorStore = writable({
 		updates: [], // Store updates from all iterators
@@ -1303,7 +1310,7 @@
 					on:indexUpdate={handleIteratorIndexUpdate}
 					on:move={handleComponentMove}
 					on:redraw={() => {}}
-					on:delete={(e) => deleteComponent(e.detail.id)}
+					on:delete={(e) => handleComponentDelete(e.detail.id)}
 				/>
 			</div>
 		{:else if comp.type === "2darray"}
@@ -1323,7 +1330,7 @@
 					on:nodeMouseDown={handleNodeMouseDown}
 					on:move={handleComponentMove}
 					on:redraw={() => {}}
-					on:delete={(e) => deleteComponent(e.detail.id)}
+					on:delete={(e) => handleComponentDelete(e.detail.id)}
 				/>
 			</div>
 		{:else if comp.type === "pointer"}
@@ -1343,7 +1350,7 @@
 					{hoveredNode}
 					on:move={handleComponentMove}
 					on:redraw={() => {}}
-					on:delete={(e) => deleteComponent(e.detail.id)}
+					on:delete={(e) => handleComponentDelete(e.detail.id)}
 				/>
 			</div>
 		{:else if comp.type === "iterator"}
@@ -1365,7 +1372,7 @@
 					on:move={handleComponentMove}
 					on:redraw={() => {}}
 					color={comp.color}
-					on:delete={(e) => deleteComponent(e.detail.id)}
+					on:delete={(e) => handleComponentDelete(e.detail.id)}
 				/>
 			</div>
 		{:else if comp.type === "node"}
@@ -1385,7 +1392,7 @@
 					on:nodeMouseDown={handleNodeMouseDown}
 					on:createConnectedNode={handleCreateConnectedNode}
 					on:move={handleComponentMove}
-					on:delete={(e) => deleteComponent(e.detail.id)}
+					on:delete={(e) => handleComponentDelete(e.detail.id)}
 				></NodeComponent>
 			</div>
 		{:else if comp.type === "binary-node"}
@@ -1405,7 +1412,7 @@
 					on:nodeMouseDown={handleNodeMouseDown}
 					on:createConnectedNode={handleCreateConnectedNode}
 					on:move={handleComponentMove}
-					on:delete={(e) => deleteComponent(e.detail.id)}
+					on:delete={(e) => handleComponentDelete(e.detail.id)}
 				></BinaryNodeComponent>
 			</div>
 		{:else if comp.type === "nary-node"}
@@ -1426,7 +1433,7 @@
 					on:nodeMouseDown={handleNodeMouseDown}
 					on:createConnectedNode={handleCreateConnectedNode}
 					on:move={handleComponentMove}
-					on:delete={(e) => deleteComponent(e.detail.id)}
+					on:delete={(e) => handleComponentDelete(e.detail.id)}
 				></NaryNodeComponent>
 			</div>
 		{/if}

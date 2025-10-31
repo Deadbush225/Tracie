@@ -81,16 +81,36 @@
 	});
 </script>
 
-<ComponentBox {id} {x} {y} {class_} on:move={(e) => dispatch("move", e.detail)} on:nodeMouseDown={(e) => dispatch("nodeMouseDown", e.detail)} on:delete={(e) => dispatch("delete", e.detail)}>
+<ComponentBox
+	{id}
+	{x}
+	{y}
+	{class_}
+	on:move={(e) => dispatch("move", e.detail)}
+	on:nodeMouseDown={(e) => dispatch("nodeMouseDown", e.detail)}
+	on:delete={(e) => dispatch("delete", e.detail)}
+>
 	<!-- Iterator Controls -->
 	<div class="iterator-container">
 		<div class="iterator-label" style="color: {color};">Iterator</div>
 		<div class="iterator-controls">
-			<button class="nav-button" on:click|stopPropagation={moveBackward} disabled={currentIndex <= 0}> ← </button>
+			<button
+				class="nav-button"
+				on:click|stopPropagation={moveBackward}
+				disabled={currentIndex <= 0}
+			>
+				←
+			</button>
 			<div class="index-display">
 				<span class="index-value">{currentIndex}</span>
 			</div>
-			<button class="nav-button" on:click|stopPropagation={moveForward} disabled={currentIndex >= maxIndex - 1}> → </button>
+			<button
+				class="nav-button"
+				on:click|stopPropagation={moveForward}
+				disabled={currentIndex >= maxIndex - 1}
+			>
+				→
+			</button>
 		</div>
 	</div>
 </ComponentBox>

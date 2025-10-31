@@ -26,10 +26,13 @@
 			store.updates.forEach((update, idx) => {
 				if (update.linkedArrayId === id) {
 					// Get color based on iterator position (or use iterator ID for consistency)
-					const iteratorComp = get(components).find((c) => c.id === update.iteratorId);
+					const iteratorComp = get(components).find(
+						(c) => c.id === update.iteratorId
+					);
 					const color = iteratorComp?.color || update.color || "#ffeb3b";
 
-					if (!highlightsByIterator[update.index]) highlightsByIterator[update.index] = [];
+					if (!highlightsByIterator[update.index])
+						highlightsByIterator[update.index] = [];
 					highlightsByIterator[update.index].push(color);
 					console.log(highlightsByIterator);
 				}
@@ -78,7 +81,10 @@
 
 			if (swap) {
 				// Swap the two values directly
-				[newData[draggingColIndex], newData[hoverColIndex]] = [newData[hoverColIndex], newData[draggingColIndex]];
+				[newData[draggingColIndex], newData[hoverColIndex]] = [
+					newData[hoverColIndex],
+					newData[draggingColIndex],
+				];
 			} else {
 				// Remove and insert (original behavior)
 				const [moved] = newData.splice(draggingColIndex, 1);
@@ -147,7 +153,15 @@
 	}
 </script>
 
-<ComponentBox {id} {x} {y} {class_} on:move={(e) => dispatch("move", e.detail)} on:nodeMouseDown={(e) => dispatch("nodeMouseDown", e.detail)} on:delete={(e) => dispatch("delete", e.detail)}>
+<ComponentBox
+	{id}
+	{x}
+	{y}
+	{class_}
+	on:move={(e) => dispatch("move", e.detail)}
+	on:nodeMouseDown={(e) => dispatch("nodeMouseDown", e.detail)}
+	on:delete={(e) => dispatch("delete", e.detail)}
+>
 	<!-- Table -->
 	<table style="border-collapse:collapse;">
 		<tbody>
@@ -156,7 +170,11 @@
 					<td
 						style="position:relative; border:1px solid #888; padding:6px; background:#e3e3e3; cursor:move; 
                 {draggingColIndex === i ? 'opacity:0.5;' : ''} 
-                {hoverColIndex === i && draggingColIndex !== null && isReordering ? 'outline:2px dashed #1976d2;' : ''}; background:{blendColors(highlightsByIterator[i])};"
+                {hoverColIndex === i &&
+						draggingColIndex !== null &&
+						isReordering
+							? 'outline:2px dashed #1976d2;'
+							: ''}; background:{blendColors(highlightsByIterator[i])};"
 						on:mousedown={(e) => handleColMouseDown(i, e)}
 						on:mousemove={() => handleColMouseMove(i)}>{i}</td
 					>
@@ -164,7 +182,11 @@
 			</tr>
 			<tr>
 				{#each Array(length) as _, i}
-					<td style="border:1px solid #888; padding:6px; background:{blendColors(highlightsByIterator[i])};">
+					<td
+						style="border:1px solid #888; padding:6px; background:{blendColors(
+							highlightsByIterator[i]
+						)};"
+					>
 						<input style="width:40px;" bind:value={data[i]} />
 					</td>
 				{/each}
