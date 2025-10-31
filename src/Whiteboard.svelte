@@ -1480,6 +1480,44 @@
 	<svg
 		style="position:absolute; left:0; top:0; width:100vw; height:100vh; pointer-events:none; z-index:1;"
 	>
+		<defs>
+			<!-- Arrow marker for normal links -->
+			<marker
+				id="arrowhead"
+				markerWidth="10"
+				markerHeight="10"
+				refX="9"
+				refY="3"
+				orient="auto"
+				markerUnits="strokeWidth"
+			>
+				<polygon points="0 0, 10 3, 0 6" fill="context-stroke" />
+			</marker>
+			<!-- Arrow marker for selected links -->
+			<marker
+				id="arrowhead-selected"
+				markerWidth="10"
+				markerHeight="10"
+				refX="9"
+				refY="3"
+				orient="auto"
+				markerUnits="strokeWidth"
+			>
+				<polygon points="0 0, 10 3, 0 6" fill="#d32f2f" />
+			</marker>
+			<!-- Arrow marker for dragging link -->
+			<marker
+				id="arrowhead-dragging"
+				markerWidth="10"
+				markerHeight="10"
+				refX="9"
+				refY="3"
+				orient="auto"
+				markerUnits="strokeWidth"
+			>
+				<polygon points="0 0, 10 3, 0 6" fill="#1976d2" />
+			</marker>
+		</defs>
 		{#each $linkEndpoints as { fromPos, toPos, link, path }}
 			{#if fromPos && toPos}
 				<!-- Thicker invisible path for easier selection -->
@@ -1500,6 +1538,7 @@
 					stroke-width={selectedLinks.includes(link) ? 4 : 2}
 					stroke-dasharray={selectedLinks.includes(link) ? "6,3" : "none"}
 					fill="none"
+					marker-end={selectedLinks.includes(link) ? "url(#arrowhead-selected)" : "url(#arrowhead)"}
 					style="pointer-events:stroke"
 					on:click={(e) => handleLinkClick(link, e)}
 					role="button"
@@ -1527,6 +1566,7 @@
 					stroke-width="2"
 					stroke-dasharray="4"
 					fill="none"
+					marker-end="url(#arrowhead-dragging)"
 				/>
 			{:else}
 				<!-- Show temp dashed line from node to mouse -->
