@@ -4,6 +4,8 @@
 	import PointerComponent from "../components/PointerComponent.svelte";
 	import IteratorComponent from "../components/IteratorComponent.svelte";
 	import NodeComponent from "../components/NodeComponent.svelte";
+	import BinaryNodeComponent from "../components/BinaryNodeComponent.svelte";
+	import NaryNodeComponent from "../components/NaryNodeComponent.svelte";
 
 	import {
 		components,
@@ -26,6 +28,11 @@
 		updateLinks,
 		addIteratorComponent,
 		addNodeComponent,
+		addBinaryNodeComponent,
+		addNaryNodeComponent,
+		addNodeByType,
+		optimizeLinkPath,
+		optimizeAllLinks,
 	} from "./Whiteboard_back";
 
 	import { onMount, setContext, tick } from "svelte";
@@ -61,33 +68,92 @@
 		// Calculate the position for the new node
 		let newX = sourceComponent.x;
 		let newY = sourceComponent.y;
-		const offset_rl = 180; // Distance between nodes
-		const offset_tb = 100; // Distance between nodes
+		const offset_rl = 180; // Distance between nodes (horizontal)
+		const offset_tb = 100; // Distance between nodes (vertical)
+		const offset_diag = 150; // Distance for diagonal nodes
 
 		switch (direction) {
 			case "top":
 				newY -= offset_tb;
 				break;
+			case "top-right":
+				newX += offset_diag;
+				newY -= offset_diag * 0.7;
+				break;
 			case "right":
 				newX += offset_rl;
+				break;
+			case "bottom-right":
+				newX += offset_diag;
+				newY += offset_diag * 0.7;
 				break;
 			case "bottom":
 				newY += offset_tb;
 				break;
+			case "bottom-left":
+				newX -= offset_diag;
+				newY += offset_diag * 0.7;
+				break;
 			case "left":
 				newX -= offset_rl;
 				break;
+			case "top-left":
+				newX -= offset_diag;
+				newY -= offset_diag * 0.7;
+				break;
 		}
 
-		// Create the new node using the proper function
-		const newNodeId = addNodeComponent("NewNode", newX, newY);
+		// Create the new node using the same type as the source node
+		const newNodeId = addNodeByType(
+			sourceComponent.type,
+			"NewNode",
+			newX,
+			newY
+		);
 		const newNode = $components.find((c) => c.id === newNodeId);
 		if (!newNode) return;
 
 		// Create a link between the nodes
-		const fromSide = direction === "top" ? "top" : direction === "right" ? "right" : direction === "bottom" ? "bottom" : "left";
+		// Map primary and secondary directions
+		let fromSide, toSide;
 
-		const toSide = direction === "top" ? "bottom" : direction === "right" ? "left" : direction === "bottom" ? "top" : "right";
+		switch (direction) {
+			case "top":
+				fromSide = "top";
+				toSide = "bottom";
+				break;
+			case "top-right":
+				fromSide = "top";
+				toSide = "bottom";
+				break;
+			case "right":
+				fromSide = "right";
+				toSide = "left";
+				break;
+			case "bottom-right":
+				fromSide = "bottom";
+				toSide = "top";
+				break;
+			case "bottom":
+				fromSide = "bottom";
+				toSide = "top";
+				break;
+			case "bottom-left":
+				fromSide = "bottom";
+				toSide = "top";
+				break;
+			case "left":
+				fromSide = "left";
+				toSide = "right";
+				break;
+			case "top-left":
+				fromSide = "top";
+				toSide = "bottom";
+				break;
+			default:
+				fromSide = "right";
+				toSide = "left";
+		}
 
 		// Use the global getNodeCenterMap for the source node if available
 		const sourceGetNodeCenter =
@@ -164,7 +230,14 @@
 
 		iteratorStore.update((store) => {
 			// Remove the specific update for this iterator-array pair
-			const updates = store.updates.filter((u) => !(u.iteratorId === iteratorId && u.linkedArrayId === linkedArrayId && u.linkDirection === linkDirection));
+			const updates = store.updates.filter(
+				(u) =>
+					!(
+						u.iteratorId === iteratorId &&
+						u.linkedArrayId === linkedArrayId &&
+						u.linkDirection === linkDirection
+					)
+			);
 
 			return {
 				...store,
@@ -175,12 +248,26 @@
 
 	// Handle iterator index updates
 	function handleIteratorIndexUpdate(event) {
-		const { iteratorId, index, linkedArrays, color, linkDirection, linkedArrayId } = event.detail;
+		const {
+			iteratorId,
+			index,
+			linkedArrays,
+			color,
+			linkDirection,
+			linkedArrayId,
+		} = event.detail;
 
 		iteratorStore.update((store) => {
 			// Add/update this iterator's entry
 			// Filter based on iteratorId + linkedArrayId + linkDirection
-			const updates = store.updates.filter((u) => !(u.iteratorId === iteratorId && u.linkedArrayId === linkedArrayId && u.linkDirection === linkDirection));
+			const updates = store.updates.filter(
+				(u) =>
+					!(
+						u.iteratorId === iteratorId &&
+						u.linkedArrayId === linkedArrayId &&
+						u.linkDirection === linkDirection
+					)
+			);
 
 			updates.push({
 				iteratorId,
@@ -248,7 +335,11 @@
 		if (el && el.classList.contains("node")) {
 			const compId = +el.getAttribute("data-comp-id");
 			const side = el.getAttribute("data-side");
-			if (compId !== draggingLink.from.componentId && window.__getNodeCenterMap && window.__getNodeCenterMap[`${compId}-${side}`]) {
+			if (
+				compId !== draggingLink.from.componentId &&
+				window.__getNodeCenterMap &&
+				window.__getNodeCenterMap[`${compId}-${side}`]
+			) {
 				hoveredNode = {
 					componentId: compId,
 					side,
@@ -263,8 +354,14 @@
 	function linkExists(a, b) {
 		return ls.some(
 			(l) =>
-				(l.from.componentId === a.componentId && l.from.side === a.side && l.to.componentId === b.componentId && l.to.side === b.side) ||
-				(l.from.componentId === b.componentId && l.from.side === b.side && l.to.componentId === a.componentId && l.to.side === a.side)
+				(l.from.componentId === a.componentId &&
+					l.from.side === a.side &&
+					l.to.componentId === b.componentId &&
+					l.to.side === b.side) ||
+				(l.from.componentId === b.componentId &&
+					l.from.side === b.side &&
+					l.to.componentId === a.componentId &&
+					l.to.side === a.side)
 		);
 	}
 
@@ -272,7 +369,11 @@
 		window.removeEventListener("mousemove", handleMouseMove);
 		window.removeEventListener("mouseup", handleMouseUp);
 
-		if (hoveredNode && draggingLink && !linkExists(draggingLink.from, hoveredNode)) {
+		if (
+			hoveredNode &&
+			draggingLink &&
+			!linkExists(draggingLink.from, hoveredNode)
+		) {
 			// Create the link using the command system
 			createLink(draggingLink.from, hoveredNode);
 		}
@@ -285,13 +386,33 @@
 
 		if (final) {
 			// Only record history on final move (mouse up)
-			if (selectedComponentIds.length > 1 && selectedComponentIds.includes(id)) {
+			if (
+				selectedComponentIds.length > 1 &&
+				selectedComponentIds.includes(id)
+			) {
 				// For multi-selection, use the totalDx/totalDy for history
-				moveMultipleComponents(selectedComponentIds, event.detail.totalDx, event.detail.totalDy);
+				moveMultipleComponents(
+					selectedComponentIds,
+					event.detail.totalDx,
+					event.detail.totalDy
+				);
 			} else {
 				// For single component, use the totalDx/totalDy for history
 				moveComponent(id, event.detail.totalDx, event.detail.totalDy);
 			}
+
+			// Optimize links connected to moved components after movement is complete
+			const movedIds = selectedComponentIds.includes(id)
+				? selectedComponentIds
+				: [id];
+			const affectedLinks = $links.filter(
+				(link) =>
+					movedIds.includes(link.from.componentId) ||
+					movedIds.includes(link.to.componentId)
+			);
+
+			// Optimize each affected link to find shortest path
+			affectedLinks.forEach((link) => optimizeLinkPath(link));
 		} else {
 			selectedComponentIds.forEach((val) => {
 				components.update((comps) =>
@@ -346,8 +467,19 @@
 
 	// Listen for keyboard shortcuts (Ctrl+D to duplicate, Delete to remove)
 	function handleKeyDown(event) {
+		// Check if user is typing in an input or textarea
+		const activeElement = document.activeElement;
+		const isTyping =
+			activeElement &&
+			(activeElement.tagName === "INPUT" ||
+				activeElement.tagName === "TEXTAREA" ||
+				(activeElement as HTMLElement).contentEditable === "true");
+
 		// Delete component/link
 		if (event.key === "Delete" || event.key === "Backspace") {
+			// Don't delete components if user is typing
+			if (isTyping) return;
+
 			// Delete links first if any are selected
 			if (selectedLinks.length > 0) {
 				deleteSelectedLinks();
@@ -362,6 +494,9 @@
 
 		// Duplicate selected components and links with Ctrl+D
 		if (event.ctrlKey && event.key === "d") {
+			// Don't duplicate if user is typing
+			if (isTyping) return;
+
 			event.preventDefault();
 
 			// First, duplicate all selected components and collect their new IDs
@@ -427,20 +562,48 @@
 
 		// Select all components with Ctrl+A
 		if (event.ctrlKey && event.key === "a") {
+			// Allow native Ctrl+A behavior when typing in input/textarea
+			if (isTyping) return;
+
 			event.preventDefault();
 			selectedComponentIds = comps.map((comp) => comp.id);
 		}
 
 		// Undo with Ctrl+Z
 		if (event.ctrlKey && event.key === "z") {
+			// Allow native undo in input fields
+			if (isTyping) return;
+
 			event.preventDefault();
 			undo();
 		}
 
 		// Redo with Ctrl+Y or Ctrl+Shift+Z
-		if ((event.ctrlKey && event.key === "y") || (event.ctrlKey && event.shiftKey && event.key === "z")) {
+		if (
+			(event.ctrlKey && event.key === "y") ||
+			(event.ctrlKey && event.shiftKey && event.key === "z")
+		) {
+			// Allow native redo in input fields
+			if (isTyping) return;
+
 			event.preventDefault();
 			redo();
+		}
+
+		// Optimize selected links with Ctrl+O
+		if (event.ctrlKey && event.key === "o") {
+			// Don't optimize if user is typing
+			if (isTyping) return;
+
+			event.preventDefault();
+
+			if (selectedLinks.length > 0) {
+				// Optimize only selected links
+				selectedLinks.forEach((link) => optimizeLinkPath(link));
+			} else {
+				// Optimize all links if none are selected
+				optimizeAllLinks();
+			}
 		}
 	}
 
@@ -462,7 +625,10 @@
 		return () => {
 			window.removeEventListener("resize", updateSvgRect);
 			window.removeEventListener("keydown", handleKeyDown);
-			window.removeEventListener("iterator-link-deleted", handleIteratorLinkDeleted);
+			window.removeEventListener(
+				"iterator-link-deleted",
+				handleIteratorLinkDeleted
+			);
 		};
 	});
 
@@ -481,7 +647,9 @@
 		if (event.shiftKey) {
 			// If already selected, remove from selection
 			if (selectedComponentIds.includes(comp.id)) {
-				selectedComponentIds = selectedComponentIds.filter((id) => id !== comp.id);
+				selectedComponentIds = selectedComponentIds.filter(
+					(id) => id !== comp.id
+				);
 			} else {
 				// Add to selection
 				selectedComponentIds = [...selectedComponentIds, comp.id];
@@ -539,7 +707,10 @@
 	function handleSelectionStart(event) {
 		// Only start selection box if not clicking on a component
 		if (event.target === svgContainer) {
-			selectionStartPos = { x: event.clientX - svgRect.left, y: event.clientY - svgRect.top };
+			selectionStartPos = {
+				x: event.clientX - svgRect.left,
+				y: event.clientY - svgRect.top,
+			};
 			selectionBox = {
 				x: event.clientX - svgRect.left,
 				y: event.clientY - svgRect.top,
@@ -585,7 +756,12 @@
 					};
 
 					// Check if component intersects with selection box
-					if (rect.left < selectionBox.x + selectionBox.width && rect.right > selectionBox.x && rect.top < selectionBox.y + selectionBox.height && rect.bottom > selectionBox.y) {
+					if (
+						rect.left < selectionBox.x + selectionBox.width &&
+						rect.right > selectionBox.x &&
+						rect.top < selectionBox.y + selectionBox.height &&
+						rect.bottom > selectionBox.y
+					) {
 						newSelection.push(comp.id);
 					}
 				}
@@ -595,12 +771,18 @@
 			if (!event.shiftKey) {
 				selectedComponentIds = newSelection;
 			} else {
-				selectedComponentIds = [...new Set([...selectedComponentIds, ...newSelection])];
+				selectedComponentIds = [
+					...new Set([...selectedComponentIds, ...newSelection]),
+				];
 			}
 			console.log(selectedComponentIds);
 		} else {
 			// Check if the click was on a component or element before deselecting
-			const isOnComponent = event.target.closest('[id^="comp-"]') || event.target.closest("path[stroke]") || event.target.closest(".node") || event.target.closest(".group-selection-box");
+			const isOnComponent =
+				event.target.closest('[id^="comp-"]') ||
+				event.target.closest("path[stroke]") ||
+				event.target.closest(".node") ||
+				event.target.closest(".group-selection-box");
 
 			if (!isOnComponent) {
 				console.log("Background clicked, deselecting");
@@ -637,17 +819,43 @@
 		<button on:click={addPointerComponent}>Add Pointer</button>
 		<button on:click={addIteratorComponent}>Add Iterator</button>
 		<button on:click={addNodeComponent}>Add Node</button>
+		<button on:click={addBinaryNodeComponent}>Add Binary Node</button>
+		<button on:click={addNaryNodeComponent}>Add N-ary Node</button>
 		<div style="width: 20px;"></div>
 		<!-- Spacer -->
-		<button on:click={undo} disabled={!canUndo} title="Undo (Ctrl+Z)"> Undo </button>
-		<button on:click={redo} disabled={!canRedo} title="Redo (Ctrl+Y)"> Redo </button>
+		<button on:click={undo} disabled={!canUndo} title="Undo (Ctrl+Z)">
+			Undo
+		</button>
+		<button on:click={redo} disabled={!canRedo} title="Redo (Ctrl+Y)">
+			Redo
+		</button>
+		<div style="width: 20px;"></div>
+		<!-- Spacer -->
+		<button
+			on:click={() => {
+				if (selectedLinks.length > 0) {
+					selectedLinks.forEach((link) => optimizeLinkPath(link));
+				} else {
+					optimizeAllLinks();
+				}
+			}}
+			title="Optimize link paths to shortest distance (Ctrl+O)"
+		>
+			{selectedLinks.length > 0 ? "Optimize Selected" : "Optimize All Links"}
+		</button>
 	</div>
 
 	<div>
 		{#each comps as comp (comp.id)}
 			{#if comp.type === "array"}
 				<!-- Wrap ArrayComponent so we can handle clicks but not interfere with component's own dragging -->
-				<div class="component-placeholder" on:mousedown={(e) => handleComponentClick(comp, e)} role="button" tabindex="0" on:keydown={() => {}}>
+				<div
+					class="component-placeholder"
+					on:mousedown={(e) => handleComponentClick(comp, e)}
+					role="button"
+					tabindex="0"
+					on:keydown={() => {}}
+				>
 					<ArrayComponent
 						id={comp.id}
 						x={comp.x}
@@ -657,18 +865,57 @@
 						on:indexUpdate={handleIteratorIndexUpdate}
 						on:move={handleComponentMove}
 						on:redraw={() => {}}
+						on:delete={(e) => deleteComponent(e.detail.id)}
 					/>
 				</div>
 			{:else if comp.type === "2darray"}
-				<div class="component-placeholder" on:mousedown={(e) => handleComponentClick(comp, e)} role="button" tabindex="0" on:keydown={() => {}}>
-					<Table2DComponent id={comp.id} x={comp.x} y={comp.y} rows={comp.rows} cols={comp.cols} on:nodeMouseDown={handleNodeMouseDown} on:move={handleComponentMove} on:redraw={() => {}} />
+				<div
+					class="component-placeholder"
+					on:mousedown={(e) => handleComponentClick(comp, e)}
+					role="button"
+					tabindex="0"
+					on:keydown={() => {}}
+				>
+					<Table2DComponent
+						id={comp.id}
+						x={comp.x}
+						y={comp.y}
+						rows={comp.rows}
+						cols={comp.cols}
+						on:nodeMouseDown={handleNodeMouseDown}
+						on:move={handleComponentMove}
+						on:redraw={() => {}}
+						on:delete={(e) => deleteComponent(e.detail.id)}
+					/>
 				</div>
 			{:else if comp.type === "pointer"}
-				<div class="component-placeholder" on:mousedown={(e) => handleComponentClick(comp, e)} role="button" tabindex="0" on:keydown={() => {}}>
-					<PointerComponent id={comp.id} x={comp.x} y={comp.y} value={comp.value} on:nodeMouseDown={handleNodeMouseDown} {hoveredNode} on:move={handleComponentMove} on:redraw={() => {}} />
+				<div
+					class="component-placeholder"
+					on:mousedown={(e) => handleComponentClick(comp, e)}
+					role="button"
+					tabindex="0"
+					on:keydown={() => {}}
+				>
+					<PointerComponent
+						id={comp.id}
+						x={comp.x}
+						y={comp.y}
+						value={comp.value}
+						on:nodeMouseDown={handleNodeMouseDown}
+						{hoveredNode}
+						on:move={handleComponentMove}
+						on:redraw={() => {}}
+						on:delete={(e) => deleteComponent(e.detail.id)}
+					/>
 				</div>
 			{:else if comp.type === "iterator"}
-				<div class="component-placeholder" on:mousedown={(e) => handleComponentClick(comp, e)} role="button" tabindex="0" on:keydown={() => {}}>
+				<div
+					class="component-placeholder"
+					on:mousedown={(e) => handleComponentClick(comp, e)}
+					role="button"
+					tabindex="0"
+					on:keydown={() => {}}
+				>
 					<IteratorComponent
 						id={comp.id}
 						x={comp.x}
@@ -680,10 +927,17 @@
 						on:move={handleComponentMove}
 						on:redraw={() => {}}
 						color={comp.color}
+						on:delete={(e) => deleteComponent(e.detail.id)}
 					/>
 				</div>
 			{:else if comp.type === "node"}
-				<div class="component-placeholder" on:mousedown={(e) => handleComponentClick(comp, e)} role="button" tabindex="0" on:keydown={() => {}}>
+				<div
+					class="component-placeholder"
+					on:mousedown={(e) => handleComponentClick(comp, e)}
+					role="button"
+					tabindex="0"
+					on:keydown={() => {}}
+				>
 					<NodeComponent
 						id={comp.id}
 						x={comp.x}
@@ -693,7 +947,49 @@
 						on:nodeMouseDown={handleNodeMouseDown}
 						on:createConnectedNode={handleCreateConnectedNode}
 						on:move={handleComponentMove}
+						on:delete={(e) => deleteComponent(e.detail.id)}
 					></NodeComponent>
+				</div>
+			{:else if comp.type === "binary-node"}
+				<div
+					class="component-placeholder"
+					on:mousedown={(e) => handleComponentClick(comp, e)}
+					role="button"
+					tabindex="0"
+					on:keydown={() => {}}
+				>
+					<BinaryNodeComponent
+						id={comp.id}
+						x={comp.x}
+						y={comp.y}
+						value={comp.value}
+						selected={selectedComponentIds.includes(comp.id)}
+						on:nodeMouseDown={handleNodeMouseDown}
+						on:createConnectedNode={handleCreateConnectedNode}
+						on:move={handleComponentMove}
+						on:delete={(e) => deleteComponent(e.detail.id)}
+					></BinaryNodeComponent>
+				</div>
+			{:else if comp.type === "nary-node"}
+				<div
+					class="component-placeholder"
+					on:mousedown={(e) => handleComponentClick(comp, e)}
+					role="button"
+					tabindex="0"
+					on:keydown={() => {}}
+				>
+					<NaryNodeComponent
+						id={comp.id}
+						x={comp.x}
+						y={comp.y}
+						value={comp.value}
+						childCount={comp.childCount || 3}
+						selected={selectedComponentIds.includes(comp.id)}
+						on:nodeMouseDown={handleNodeMouseDown}
+						on:createConnectedNode={handleCreateConnectedNode}
+						on:move={handleComponentMove}
+						on:delete={(e) => deleteComponent(e.detail.id)}
+					></NaryNodeComponent>
 				</div>
 			{/if}
 		{/each}
@@ -701,11 +997,23 @@
 	</div>
 
 	<!-- Link rendering with selection highlighting -->
-	<svg style="position:absolute; left:0; top:0; width:100vw; height:100vh; pointer-events:none; z-index:1;">
+	<svg
+		style="position:absolute; left:0; top:0; width:100vw; height:100vh; pointer-events:none; z-index:1;"
+	>
 		{#each $linkEndpoints as { fromPos, toPos, link, path }}
 			{#if fromPos && toPos}
 				<!-- Thicker invisible path for easier selection -->
-				<path d={path} stroke="transparent" stroke-width="16" fill="none" style="pointer-events:stroke" on:click={(e) => handleLinkClick(link, e)} role="button" tabindex="0" on:keydown={() => {}} />
+				<path
+					d={path}
+					stroke="transparent"
+					stroke-width="16"
+					fill="none"
+					style="pointer-events:stroke"
+					on:click={(e) => handleLinkClick(link, e)}
+					role="button"
+					tabindex="0"
+					on:keydown={() => {}}
+				/>
 				<path
 					d={path}
 					stroke={selectedLinks.includes(link) ? "#d32f2f" : link.color}
@@ -742,14 +1050,26 @@
 				/>
 			{:else}
 				<!-- Show temp dashed line from node to mouse -->
-				<line x1={fromPos.x - svgRect.left} y1={fromPos.y - svgRect.top} x2={mouse.x - svgRect.left} y2={mouse.y - svgRect.top} stroke="#1976d2" stroke-width="2" stroke-dasharray="6,6" fill="none" />
+				<line
+					x1={fromPos.x - svgRect.left}
+					y1={fromPos.y - svgRect.top}
+					x2={mouse.x - svgRect.left}
+					y2={mouse.y - svgRect.top}
+					stroke="#1976d2"
+					stroke-width="2"
+					stroke-dasharray="6,6"
+					fill="none"
+				/>
 			{/if}
 		{/if}
 	</svg>
 
 	<!-- Selection box overlay -->
 	{#if selectionBox}
-		<div class="selection-box" style="position:absolute; left:{selectionBox.x}px; top:{selectionBox.y}px; width:{selectionBox.width}px; height:{selectionBox.height}px;"></div>
+		<div
+			class="selection-box"
+			style="position:absolute; left:{selectionBox.x}px; top:{selectionBox.y}px; width:{selectionBox.width}px; height:{selectionBox.height}px;"
+		></div>
 	{/if}
 
 	<!-- Add the group selection box element -->

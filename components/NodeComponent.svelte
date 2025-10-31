@@ -37,13 +37,26 @@
 	}
 </script>
 
-<ComponentBox {id} {x} {y} {class_} on:move={(e) => dispatch("move", e.detail)} on:nodeMouseDown={(e) => dispatch("nodeMouseDown", e.detail)}>
+<ComponentBox
+	{id}
+	{x}
+	{y}
+	{class_}
+	on:move={(e) => dispatch("move", e.detail)}
+	on:nodeMouseDown={(e) => dispatch("nodeMouseDown", e.detail)}
+>
 	<div class="node-container">
 		<!-- The rectangular node -->
 		<div class="node">
 			<!-- Main content -->
 			{#if editing}
-				<input id={"node-edit-" + id} {value} on:input={handleInput} on:blur={handleBlur} class="node-input" />
+				<input
+					id={"node-edit-" + id}
+					{value}
+					on:input={handleInput}
+					on:blur={handleBlur}
+					class="node-input"
+				/>
 			{:else}
 				<span class="node-value" on:dblclick={handleDblClick}>
 					{value || "Value"}
@@ -72,10 +85,38 @@
 		</div>
 		<!-- Plus buttons (show only when selected) -->
 		{#if selected}
-			<button class="add-node-btn top" on:click={() => createNodeInDirection("top")}>&#43;</button>
-			<button class="add-node-btn right" on:click={() => createNodeInDirection("right")}>&#43;</button>
-			<button class="add-node-btn bottom" on:click={() => createNodeInDirection("bottom")}>&#43;</button>
-			<button class="add-node-btn left" on:click={() => createNodeInDirection("left")}>&#43;</button>
+			<button
+				class="add-node-btn top"
+				on:click={() => createNodeInDirection("top")}>&#43;</button
+			>
+			<button
+				class="add-node-btn top-right"
+				on:click={() => createNodeInDirection("top-right")}>&#43;</button
+			>
+			<button
+				class="add-node-btn right"
+				on:click={() => createNodeInDirection("right")}>&#43;</button
+			>
+			<button
+				class="add-node-btn bottom-right"
+				on:click={() => createNodeInDirection("bottom-right")}>&#43;</button
+			>
+			<button
+				class="add-node-btn bottom"
+				on:click={() => createNodeInDirection("bottom")}>&#43;</button
+			>
+			<button
+				class="add-node-btn bottom-left"
+				on:click={() => createNodeInDirection("bottom-left")}>&#43;</button
+			>
+			<button
+				class="add-node-btn left"
+				on:click={() => createNodeInDirection("left")}>&#43;</button
+			>
+			<button
+				class="add-node-btn top-left"
+				on:click={() => createNodeInDirection("top-left")}>&#43;</button
+			>
 		{/if}
 	</div>
 </ComponentBox>
@@ -145,10 +186,20 @@
 		transform: translateX(-50%);
 	}
 
+	.add-node-btn.top-right {
+		top: -24px;
+		right: -24px;
+	}
+
 	.add-node-btn.right {
 		right: -30px;
 		top: 50%;
 		transform: translateY(-50%);
+	}
+
+	.add-node-btn.bottom-right {
+		bottom: -24px;
+		right: -24px;
 	}
 
 	.add-node-btn.bottom {
@@ -157,10 +208,20 @@
 		transform: translateX(-50%);
 	}
 
+	.add-node-btn.bottom-left {
+		bottom: -24px;
+		left: -24px;
+	}
+
 	.add-node-btn.left {
 		left: -30px;
 		top: 50%;
 		transform: translateY(-50%);
+	}
+
+	.add-node-btn.top-left {
+		top: -24px;
+		left: -24px;
 	}
 
 	/* Custom Node */

@@ -7,6 +7,8 @@
 	export let class_ = "";
 	export let hoveredNode = null;
 	export let deletable = true;
+	// New prop: array of connection point names (e.g., ["top", "bottom-left", "bottom-right"])
+	export let connectionPoints = ["top", "bottom", "left", "right"];
 
 	let container;
 	let dragging = false;
@@ -71,6 +73,7 @@
 		let _x = x + svgRect.left;
 		let _y = y + svgRect.top;
 
+		// Support custom connection point positions
 		switch (side) {
 			case "top":
 				return { x: _x + width / 2, y: _y - 6 };
@@ -80,6 +83,18 @@
 				return { x: _x - 6, y: _y + height / 2 };
 			case "right":
 				return { x: _x + width + 6, y: _y + height / 2 };
+			// Binary tree connections
+			case "bottom-left":
+				return { x: _x + width * 0.3, y: _y + height + 6 };
+			case "bottom-right":
+				return { x: _x + width * 0.7, y: _y + height + 6 };
+			// Diagonal connections
+			case "top-left":
+				return { x: _x - 6, y: _y + height * 0.25 };
+			case "top-right":
+				return { x: _x + width + 6, y: _y + height * 0.25 };
+			default:
+				return { x: _x + width / 2, y: _y + height / 2 };
 		}
 	}
 
@@ -87,9 +102,16 @@
 		if (!window.__getNodeCenterMap) window.__getNodeCenterMap = {};
 		window.__getNodeCenterMap[`${id}-${side}`] = () => getNodeCenter(side);
 	}
+
 	onMount(() => {
-		["top", "bottom", "left", "right"].forEach(registerNode);
+		// Register all connection points specified by the parent component
+		connectionPoints.forEach(registerNode);
 	});
+
+	// Re-register when connection points change
+	$: if (connectionPoints) {
+		connectionPoints.forEach(registerNode);
+	}
 </script>
 
 <div
@@ -103,18 +125,48 @@
 	on:click|stopPropagation
 >
 	{#if deletable}
-		<button on:click={() => dispatch("delete", { id })} class="delete-x" title="Delete"> × </button>
+		<button
+			on:click={() => dispatch("delete", { id })}
+			class="delete-x"
+			title="Delete"
+		>
+			×
+		</button>
 	{/if}
-	<!-- Nodes on all sides -->
-	{#each ["top", "bottom", "left", "right"] as side}
+	<!-- Nodes at custom connection points -->
+	{#each connectionPoints as side}
 		<div
-			class="node {hoveredNode && hoveredNode.componentId === id && hoveredNode.side === side ? 'node-hovered' : ''}"
+			class="node {hoveredNode &&
+			hoveredNode.componentId === id &&
+			hoveredNode.side === side
+				? 'node-hovered'
+				: ''}"
 			data-comp-id={id}
 			data-side={side}
-			style="{side === 'top' ? 'left:50%; top:-14px; transform:translateX(-50%);' : ''}
-                   {side === 'bottom' ? 'left:50%; bottom:-14px; transform:translateX(-50%);' : ''}
-                   {side === 'left' ? 'left:-14px; top:50%; transform:translateY(-50%);' : ''}
-                   {side === 'right' ? 'right:-14px; top:50%; transform:translateY(-50%);' : ''}"
+			style="{side === 'top'
+				? 'left:50%; top:-14px; transform:translateX(-50%);'
+				: ''}
+                   {side === 'bottom'
+				? 'left:50%; bottom:-14px; transform:translateX(-50%);'
+				: ''}
+                   {side === 'left'
+				? 'left:-14px; top:50%; transform:translateY(-50%);'
+				: ''}
+                   {side === 'right'
+				? 'right:-14px; top:50%; transform:translateY(-50%);'
+				: ''}
+                   {side === 'bottom-left'
+				? 'left:30%; bottom:-14px; transform:translateX(-50%);'
+				: ''}
+                   {side === 'bottom-right'
+				? 'left:70%; bottom:-14px; transform:translateX(-50%);'
+				: ''}
+                   {side === 'top-left'
+				? 'left:-14px; top:25%; transform:translateY(-50%);'
+				: ''}
+                   {side === 'top-right'
+				? 'right:-14px; top:25%; transform:translateY(-50%);'
+				: ''}"
 			on:mousedown|stopPropagation={() =>
 				dispatch("nodeMouseDown", {
 					componentId: id,

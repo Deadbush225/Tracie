@@ -72,7 +72,9 @@ class AddComponentCommand {
 	}
 
 	undo() {
-		components.update((comps) => comps.filter((c) => c.id !== this.component.id));
+		components.update((comps) =>
+			comps.filter((c) => c.id !== this.component.id)
+		);
 	}
 }
 
@@ -82,12 +84,23 @@ class DeleteComponentCommand {
 		// Store the component and its links before deletion
 		this.componentId = componentId;
 		this.component = get(components).find((c) => c.id === componentId);
-		this.affectedLinks = get(links).filter((l) => l.from.componentId === componentId || l.to.componentId === componentId);
+		this.affectedLinks = get(links).filter(
+			(l) =>
+				l.from.componentId === componentId || l.to.componentId === componentId
+		);
 	}
 
 	execute() {
-		components.update((comps) => comps.filter((c) => c.id !== this.componentId));
-		links.update((ls) => ls.filter((l) => l.from.componentId !== this.componentId && l.to.componentId !== this.componentId));
+		components.update((comps) =>
+			comps.filter((c) => c.id !== this.componentId)
+		);
+		links.update((ls) =>
+			ls.filter(
+				(l) =>
+					l.from.componentId !== this.componentId &&
+					l.to.componentId !== this.componentId
+			)
+		);
 	}
 
 	undo() {
@@ -204,10 +217,16 @@ class CreateLinkCommand {
 		components.update((comps) => {
 			return comps.map((comp) => {
 				if (
-					(comp.id === this.link.from.componentId && comp.type === "iterator" && isArrayType(this.toCompType)) ||
-					(comp.id === this.link.to.componentId && comp.type === "iterator" && isArrayType(this.fromCompType))
+					(comp.id === this.link.from.componentId &&
+						comp.type === "iterator" &&
+						isArrayType(this.toCompType)) ||
+					(comp.id === this.link.to.componentId &&
+						comp.type === "iterator" &&
+						isArrayType(this.fromCompType))
 				) {
-					const arrayId = isArrayType(this.fromCompType) ? this.link.from.componentId : this.link.to.componentId;
+					const arrayId = isArrayType(this.fromCompType)
+						? this.link.from.componentId
+						: this.link.to.componentId;
 					const direction = isArrayType(this.fromCompType)
 						? comp.id === this.link.to.componentId
 							? this.link.from.side
@@ -219,12 +238,17 @@ class CreateLinkCommand {
 					if (isAdd) {
 						return {
 							...comp,
-							linkedArrays: [...(comp.linkedArrays || []), { id: arrayId, direction }],
+							linkedArrays: [
+								...(comp.linkedArrays || []),
+								{ id: arrayId, direction },
+							],
 						};
 					} else {
 						return {
 							...comp,
-							linkedArrays: (comp.linkedArrays || []).filter((link) => !(link.id === arrayId && link.direction === direction)),
+							linkedArrays: (comp.linkedArrays || []).filter(
+								(link) => !(link.id === arrayId && link.direction === direction)
+							),
 						};
 					}
 				}
@@ -242,7 +266,10 @@ class CreateLinkCommand {
 			iteratorId = this.link.from.componentId;
 			arrayId = this.link.to.componentId;
 			direction = this.link.to.side;
-		} else if (this.toCompType === "iterator" && isArrayType(this.fromCompType)) {
+		} else if (
+			this.toCompType === "iterator" &&
+			isArrayType(this.fromCompType)
+		) {
 			iteratorId = this.link.to.componentId;
 			arrayId = this.link.from.componentId;
 			direction = this.link.from.side;
@@ -304,10 +331,16 @@ class DeleteLinkCommand {
 		components.update((comps) => {
 			return comps.map((comp) => {
 				if (
-					(comp.id === this.link.from.componentId && comp.type === "iterator" && isArrayType(this.toCompType)) ||
-					(comp.id === this.link.to.componentId && comp.type === "iterator" && isArrayType(this.fromCompType))
+					(comp.id === this.link.from.componentId &&
+						comp.type === "iterator" &&
+						isArrayType(this.toCompType)) ||
+					(comp.id === this.link.to.componentId &&
+						comp.type === "iterator" &&
+						isArrayType(this.fromCompType))
 				) {
-					const arrayId = isArrayType(this.fromCompType) ? this.link.from.componentId : this.link.to.componentId;
+					const arrayId = isArrayType(this.fromCompType)
+						? this.link.from.componentId
+						: this.link.to.componentId;
 					const direction = isArrayType(this.fromCompType)
 						? comp.id === this.link.to.componentId
 							? this.link.from.side
@@ -320,13 +353,18 @@ class DeleteLinkCommand {
 						// Add the array ID to linkedArrays
 						return {
 							...comp,
-							linkedArrays: [...(comp.linkedArrays || []), { id: arrayId, direction }],
+							linkedArrays: [
+								...(comp.linkedArrays || []),
+								{ id: arrayId, direction },
+							],
 						};
 					} else {
 						// Remove the array ID from linkedArrays
 						return {
 							...comp,
-							linkedArrays: (comp.linkedArrays || []).filter((link) => !(link.id === arrayId && link.direction === direction)),
+							linkedArrays: (comp.linkedArrays || []).filter(
+								(link) => !(link.id === arrayId && link.direction === direction)
+							),
 						};
 					}
 				}
@@ -344,7 +382,10 @@ class DeleteLinkCommand {
 			iteratorId = this.link.from.componentId;
 			arrayId = this.link.to.componentId;
 			direction = this.link.to.side;
-		} else if (this.toCompType === "iterator" && isArrayType(this.fromCompType)) {
+		} else if (
+			this.toCompType === "iterator" &&
+			isArrayType(this.fromCompType)
+		) {
 			iteratorId = this.link.to.componentId;
 			arrayId = this.link.from.componentId;
 			direction = this.link.from.side;
@@ -377,7 +418,9 @@ class DuplicateComponentCommand {
 	}
 
 	undo() {
-		components.update((comps) => comps.filter((c) => c.id !== this.newComponent.id));
+		components.update((comps) =>
+			comps.filter((c) => c.id !== this.newComponent.id)
+		);
 	}
 }
 
@@ -495,16 +538,28 @@ export function createLink(fromNode, toNode) {
 
 	// If this link involves an iterator, use the iterator's color
 	if (fromType === "iterator") {
-		const iteratorComp = get(components).find((c) => c.id === fromNode.componentId);
+		const iteratorComp = get(components).find(
+			(c) => c.id === fromNode.componentId
+		);
 		baseColor = iteratorComp.color;
 		// Count existing links to determine shade
-		const existingLinks = get(links).filter((l) => l.from.componentId === fromNode.componentId || l.to.componentId === fromNode.componentId);
+		const existingLinks = get(links).filter(
+			(l) =>
+				l.from.componentId === fromNode.componentId ||
+				l.to.componentId === fromNode.componentId
+		);
 		shade = existingLinks.length * 10; // 10% darker per link
 	} else if (toType === "iterator") {
-		const iteratorComp = get(components).find((c) => c.id === toNode.componentId);
+		const iteratorComp = get(components).find(
+			(c) => c.id === toNode.componentId
+		);
 		baseColor = iteratorComp.color;
 		// Count existing links to determine shade
-		const existingLinks = get(links).filter((l) => l.from.componentId === toNode.componentId || l.to.componentId === toNode.componentId);
+		const existingLinks = get(links).filter(
+			(l) =>
+				l.from.componentId === toNode.componentId ||
+				l.to.componentId === toNode.componentId
+		);
 		shade = existingLinks.length * 10; // 10% darker per link
 	} else {
 		// Not an iterator link, use random color
@@ -540,7 +595,12 @@ function adjustBrightness(hex, percent) {
 	b = Math.max(0, Math.min(255, b + (b * percent) / 100));
 
 	// Convert back to hex
-	return "#" + Math.round(r).toString(16).padStart(2, "0") + Math.round(g).toString(16).padStart(2, "0") + Math.round(b).toString(16).padStart(2, "0");
+	return (
+		"#" +
+		Math.round(r).toString(16).padStart(2, "0") +
+		Math.round(g).toString(16).padStart(2, "0") +
+		Math.round(b).toString(16).padStart(2, "0")
+	);
 }
 
 // Helper function to get component type
@@ -551,6 +611,90 @@ function getComponentType(id) {
 
 export function deleteLink(link) {
 	executeCommand(new DeleteLinkCommand(link));
+}
+
+// Function to calculate distance between two points
+function getDistance(x1, y1, x2, y2) {
+	return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+}
+
+// Function to get all possible connection points for a component
+function getConnectionPoints(componentId) {
+	const sides = ["top", "right", "bottom", "left"];
+	const points = {};
+
+	sides.forEach((side) => {
+		const getNodeCenter = window.__getNodeCenterMap?.[`${componentId}-${side}`];
+		if (getNodeCenter) {
+			points[side] = getNodeCenter();
+		}
+	});
+
+	return points;
+}
+
+// Function to find the shortest path between two components
+export function optimizeLinkPath(link) {
+	if (!link || !link.from || !link.to) return;
+
+	const fromId = link.from.componentId;
+	const toId = link.to.componentId;
+
+	// Get all possible connection points
+	const fromPoints = getConnectionPoints(fromId);
+	const toPoints = getConnectionPoints(toId);
+
+	let shortestDistance = Infinity;
+	let bestFromSide = link.from.side;
+	let bestToSide = link.to.side;
+
+	// Try all combinations to find the shortest path
+	for (const [fromSide, fromPos] of Object.entries(fromPoints)) {
+		for (const [toSide, toPos] of Object.entries(toPoints)) {
+			const distance = getDistance(fromPos.x, fromPos.y, toPos.x, toPos.y);
+			if (distance < shortestDistance) {
+				shortestDistance = distance;
+				bestFromSide = fromSide;
+				bestToSide = toSide;
+			}
+		}
+	}
+
+	// Update the link if we found a better path
+	if (bestFromSide !== link.from.side || bestToSide !== link.to.side) {
+		links.update((ls) => {
+			return ls.map((l) => {
+				if (l === link) {
+					return {
+						...l,
+						from: {
+							...l.from,
+							side: bestFromSide,
+							getNodeCenter:
+								window.__getNodeCenterMap?.[`${fromId}-${bestFromSide}`] ||
+								l.from.getNodeCenter,
+						},
+						to: {
+							...l.to,
+							side: bestToSide,
+							getNodeCenter:
+								window.__getNodeCenterMap?.[`${toId}-${bestToSide}`] ||
+								l.to.getNodeCenter,
+						},
+					};
+				}
+				return l;
+			});
+		});
+	}
+}
+
+// Function to optimize all links
+export function optimizeAllLinks() {
+	const currentLinks = get(links);
+	currentLinks.forEach((link) => {
+		optimizeLinkPath(link);
+	});
 }
 
 // Initialize with some demo components
@@ -716,19 +860,27 @@ function makeRectilinearPath(x1, y1, x2, y2, fromSide, toSide, fromId, toId) {
 			const maxY = Math.max(startGrid.y, endGrid.y) + 10;
 
 			function isCellBlocked(gx, gy) {
-				if ((gx === startGrid.x && gy === startGrid.y) || (gx === endGrid.x && gy === endGrid.y)) {
+				if (
+					(gx === startGrid.x && gy === startGrid.y) ||
+					(gx === endGrid.x && gy === endGrid.y)
+				) {
 					return false;
 				}
 				const px = gx * gridSize;
 				const py = gy * gridSize;
-				const blocked = boxes.some((b) => px >= b.left && px <= b.right && py >= b.top && py <= b.bottom);
+				const blocked = boxes.some(
+					(b) => px >= b.left && px <= b.right && py >= b.top && py <= b.bottom
+				);
 				return blocked;
 			}
 
 			for (let gx = minX; gx <= maxX; gx++) {
 				for (let gy = minY; gy <= maxY; gy++) {
 					const blocked = isCellBlocked(gx, gy);
-					const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+					const rect = document.createElementNS(
+						"http://www.w3.org/2000/svg",
+						"rect"
+					);
 					rect.setAttribute("x", gx * gridSize);
 					rect.setAttribute("y", gy * gridSize);
 					rect.setAttribute("width", gridSize);
@@ -746,7 +898,11 @@ function makeRectilinearPath(x1, y1, x2, y2, fromSide, toSide, fromId, toId) {
 	}
 	// --- END DEBUG ---
 
-	const overlapsBox = (pt) => boxes.some((b) => pt.x >= b.left && pt.x <= b.right && pt.y >= b.top && pt.y <= b.bottom);
+	const overlapsBox = (pt) =>
+		boxes.some(
+			(b) =>
+				pt.x >= b.left && pt.x <= b.right && pt.y >= b.top && pt.y <= b.bottom
+		);
 	if (overlapsBox(start) || overlapsBox(end)) {
 		return `M${start.x},${start.y} L${end.x},${end.y}`;
 	}
@@ -754,12 +910,17 @@ function makeRectilinearPath(x1, y1, x2, y2, fromSide, toSide, fromId, toId) {
 	// --- Remove debug SVG drawing code for rectangles and grid cells ---
 
 	function isCellBlocked(gx, gy) {
-		if ((gx === startGrid.x && gy === startGrid.y) || (gx === endGrid.x && gy === endGrid.y)) {
+		if (
+			(gx === startGrid.x && gy === startGrid.y) ||
+			(gx === endGrid.x && gy === endGrid.y)
+		) {
 			return false;
 		}
 		const px = gx * gridSize;
 		const py = gy * gridSize;
-		const blocked = boxes.some((b) => px >= b.left && px <= b.right && py >= b.top && py <= b.bottom);
+		const blocked = boxes.some(
+			(b) => px >= b.left && px <= b.right && py >= b.top && py <= b.bottom
+		);
 		return blocked;
 	}
 
@@ -779,7 +940,10 @@ function makeRectilinearPath(x1, y1, x2, y2, fromSide, toSide, fromId, toId) {
 	const fScore = {};
 	const key = (p) => `${p.x},${p.y}`;
 	gScore[key(startGrid)] = 0;
-	fScore[key(startGrid)] = Math.hypot(startGrid.x - endGrid.x, startGrid.y - endGrid.y);
+	fScore[key(startGrid)] = Math.hypot(
+		startGrid.x - endGrid.x,
+		startGrid.y - endGrid.y
+	);
 
 	open.push({ ...startGrid, f: fScore[key(startGrid)] });
 
@@ -822,8 +986,11 @@ function makeRectilinearPath(x1, y1, x2, y2, fromSide, toSide, fromId, toId) {
 			if (tentative < (gScore[nKey] === undefined ? Infinity : gScore[nKey])) {
 				cameFrom[nKey] = current;
 				gScore[nKey] = tentative;
-				fScore[nKey] = tentative + Math.hypot(neighbor.x - endGrid.x, neighbor.y - endGrid.y);
-				if (!open.some((p) => p.x === neighbor.x && p.y === neighbor.y)) open.push({ ...neighbor, f: fScore[nKey] });
+				fScore[nKey] =
+					tentative +
+					Math.hypot(neighbor.x - endGrid.x, neighbor.y - endGrid.y);
+				if (!open.some((p) => p.x === neighbor.x && p.y === neighbor.y))
+					open.push({ ...neighbor, f: fScore[nKey] });
 			}
 		}
 	}
@@ -845,7 +1012,12 @@ function makeRectilinearPath(x1, y1, x2, y2, fromSide, toSide, fromId, toId) {
 				const curr = points[i];
 				const next = points[i + 1];
 				// If prev, curr, next are colinear (horizontal, vertical, or diagonal), skip curr
-				if ((prev.x === curr.x && curr.x === next.x) || (prev.y === curr.y && curr.y === next.y) || (prev.x - curr.x) * (curr.y - next.y) === (prev.y - curr.y) * (curr.x - next.x)) {
+				if (
+					(prev.x === curr.x && curr.x === next.x) ||
+					(prev.y === curr.y && curr.y === next.y) ||
+					(prev.x - curr.x) * (curr.y - next.y) ===
+						(prev.y - curr.y) * (curr.x - next.x)
+				) {
 					continue;
 				}
 				result.push(curr);
@@ -868,7 +1040,16 @@ function makeRectilinearPath(x1, y1, x2, y2, fromSide, toSide, fromId, toId) {
 	return d;
 }
 
-export function makeSmartOrBezierPath(x1, y1, x2, y2, fromSide, toSide, fromId, toId) {
+export function makeSmartOrBezierPath(
+	x1,
+	y1,
+	x2,
+	y2,
+	fromSide,
+	toSide,
+	fromId,
+	toId
+) {
 	if (usePathfinding) {
 		return makeRectilinearPath(x1, y1, x2, y2, fromSide, toSide, fromId, toId);
 	} else {
@@ -883,7 +1064,12 @@ export function updateLinks() {
 		const fromPos = link.from.getNodeCenter();
 		const toPos = link.to.getNodeCenter();
 		// Only update if positions have changed
-		if (link.from.x !== fromPos.x || link.from.y !== fromPos.y || link.to.x !== toPos.x || link.to.y !== toPos.y) {
+		if (
+			link.from.x !== fromPos.x ||
+			link.from.y !== fromPos.y ||
+			link.to.x !== toPos.x ||
+			link.to.y !== toPos.y
+		) {
 			changed = true;
 			link.from.x = fromPos.x;
 			link.from.y = fromPos.y;
@@ -904,13 +1090,24 @@ export function updateLinkEndpoints() {
 	const linksList = get(links);
 	linkEndpoints.set(
 		linksList.map((link) => {
-			const fromPos = link.from.getNodeCenter ? link.from.getNodeCenter() : null;
+			const fromPos = link.from.getNodeCenter
+				? link.from.getNodeCenter()
+				: null;
 			const toPos = link.to.getNodeCenter ? link.to.getNodeCenter() : null;
 			const fromSide = link.from.side;
 			const toSide = link.to.side;
 			const path =
 				fromPos && toPos
-					? makeSmartOrBezierPath(fromPos.x - svgRect.left, fromPos.y - svgRect.top, toPos.x - svgRect.left, toPos.y - svgRect.top, fromSide, toSide, link.from.componentId, link.to.componentId)
+					? makeSmartOrBezierPath(
+							fromPos.x - svgRect.left,
+							fromPos.y - svgRect.top,
+							toPos.x - svgRect.left,
+							toPos.y - svgRect.top,
+							fromSide,
+							toSide,
+							link.from.componentId,
+							link.to.componentId
+					  )
 					: "";
 			// Assign a random color if not already present
 			if (!link.color) {
@@ -943,6 +1140,61 @@ export function addNodeComponent(value, x = 100, y = 100) {
 	executeCommand(new AddComponentCommand(component));
 
 	return component.id;
+}
+
+// Add Binary Node Component (1 parent above, 2 children below)
+export function addBinaryNodeComponent(value, x = 100, y = 100) {
+	if (!value) {
+		value = prompt("Enter binary node value:");
+	}
+
+	const component = {
+		id: nextId++,
+		type: "binary-node",
+		x,
+		y,
+		value: value || "",
+		color: generateColor(nextId),
+	};
+
+	executeCommand(new AddComponentCommand(component));
+
+	return component.id;
+}
+
+// Add N-ary Node Component (1 parent above, 1 child below)
+export function addNaryNodeComponent(value, x = 100, y = 100, childCount = 3) {
+	if (!value) {
+		value = prompt("Enter n-ary node value:");
+	}
+
+	const component = {
+		id: nextId++,
+		type: "nary-node",
+		x,
+		y,
+		value: value || "",
+		childCount: childCount,
+		color: generateColor(nextId),
+	};
+
+	executeCommand(new AddComponentCommand(component));
+
+	return component.id;
+}
+
+// Helper function to create a node of the same type as the source
+export function addNodeByType(type, value, x, y) {
+	switch (type) {
+		case "node":
+			return addNodeComponent(value, x, y);
+		case "binary-node":
+			return addBinaryNodeComponent(value, x, y);
+		case "nary-node":
+			return addNaryNodeComponent(value, x, y);
+		default:
+			return addNodeComponent(value, x, y);
+	}
 }
 
 // Subscribe to both components and links
