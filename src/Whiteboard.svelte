@@ -127,7 +127,8 @@
 		switch (direction) {
 			case "top":
 				fromSide = "top";
-				toSide = isBinaryNode || isNaryNode ? "bottom" : "bottom";
+				// For binary nodes, always connect to top of child, never bottom
+				toSide = "bottom";
 				break;
 			case "top-right":
 				fromSide = isBinaryNode ? "top" : "top";
@@ -202,6 +203,21 @@
 					return { x: _x + width + 6, y: _y + height / 2 };
 			}
 		};
+
+		// Validate connection before creating link (prevent bottom-to-bottom for binary nodes)
+		const isBinaryConnection =
+			sourceComponent.type === "binary-node" || newNode.type === "binary-node";
+		const bottomSides = ["bottom", "bottom-left", "bottom-right"];
+		const isBottomToBottom =
+			bottomSides.includes(fromSide) && bottomSides.includes(toSide);
+
+		if (isBinaryConnection && isBottomToBottom) {
+			console.warn(
+				`Blocked invalid bottom-to-bottom connection for binary node: ${fromSide} -> ${toSide}`
+			);
+			// Don't create the link - just position the node
+			return;
+		}
 
 		tick().then(() => {
 			// Wait a bit more for the component to fully mount and register its getNodeCenter

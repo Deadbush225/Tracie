@@ -656,6 +656,16 @@ export function optimizeLinkPath(link) {
 	const fromId = link.from.componentId;
 	const toId = link.to.componentId;
 
+	// Get component types to check for binary nodes
+	const allComponents = get(components);
+	const fromComponent = allComponents.find((c) => c.id === fromId);
+	const toComponent = allComponents.find((c) => c.id === toId);
+
+	const isBinaryConnection =
+		fromComponent?.type === "binary-node" ||
+		toComponent?.type === "binary-node";
+	const bottomSides = ["bottom", "bottom-left", "bottom-right"];
+
 	// Get all possible connection points
 	const fromPoints = getConnectionPoints(fromId);
 	const toPoints = getConnectionPoints(toId);
@@ -667,6 +677,15 @@ export function optimizeLinkPath(link) {
 	// Try all combinations to find the shortest path
 	for (const [fromSide, fromPos] of Object.entries(fromPoints)) {
 		for (const [toSide, toPos] of Object.entries(toPoints)) {
+			// Skip invalid bottom-to-bottom connections for binary nodes
+			if (
+				isBinaryConnection &&
+				bottomSides.includes(fromSide) &&
+				bottomSides.includes(toSide)
+			) {
+				continue; // Skip this combination
+			}
+
 			const distance = getDistance(fromPos.x, fromPos.y, toPos.x, toPos.y);
 			if (distance < shortestDistance) {
 				shortestDistance = distance;
