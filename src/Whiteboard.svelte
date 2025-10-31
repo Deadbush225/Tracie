@@ -274,6 +274,19 @@
 		selectedComponentIds = selectedComponentIds.filter((cid) => cid !== id);
 	}
 
+	// Handle component name change
+	function handleComponentNameChange(event) {
+		const { id, name } = event.detail;
+		components.update((comps) => {
+			return comps.map((comp) => {
+				if (comp.id === id) {
+					return { ...comp, name };
+				}
+				return comp;
+			});
+		});
+	}
+
 	// Create a store for iterator events
 	const iteratorStore = writable({
 		updates: [], // Store updates from all iterators
@@ -1364,7 +1377,9 @@
 					x={comp.x}
 					y={comp.y}
 					value={comp.value}
+					name={comp.name || "Pointer"}
 					on:nodeMouseDown={handleNodeMouseDown}
+					on:nameChange={handleComponentNameChange}
 					{hoveredNode}
 					on:move={handleComponentMove}
 					on:redraw={() => {}}
@@ -1384,8 +1399,11 @@
 					x={comp.x}
 					y={comp.y}
 					linkedArrays={comp.linkedArrays || []}
+					name={comp.name || "Iterator"}
+					selected={selectedComponentIds.includes(comp.id)}
 					on:nodeMouseDown={handleNodeMouseDown}
 					on:indexUpdate={handleIteratorIndexUpdate}
+					on:nameChange={handleComponentNameChange}
 					{hoveredNode}
 					on:move={handleComponentMove}
 					on:redraw={() => {}}

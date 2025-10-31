@@ -9,6 +9,8 @@
 	export let maxIndex = 10; // Maximum value for the iterator
 	export let linkedArrays = []; // Array of IDs this iterator is linked to
 	export let color = "black";
+	export let name = "Iterator"; // Display name for the iterator
+	export let selected = false; // Whether this iterator is selected
 
 	import { deleteComponent, updateLinkEndpoints } from "../src/Whiteboard_back";
 	import { createEventDispatcher, onMount } from "svelte";
@@ -57,6 +59,31 @@
 		}
 	}
 
+	// Keyboard navigation when selected
+	function handleKeyDown(event) {
+		// Only respond to arrow keys when this iterator is selected
+		if (!selected) return;
+
+		// Check if user is typing in an input
+		const activeElement = document.activeElement;
+		const isTyping =
+			activeElement &&
+			(activeElement.tagName === "INPUT" ||
+				activeElement.tagName === "TEXTAREA" ||
+				(activeElement instanceof HTMLElement &&
+					activeElement.isContentEditable));
+
+		if (isTyping) return;
+
+		if (event.key === "ArrowLeft") {
+			event.preventDefault();
+			moveBackward();
+		} else if (event.key === "ArrowRight") {
+			event.preventDefault();
+			moveForward();
+		}
+	}
+
 	onMount(() => {
 		// Initial notification
 		notifyLinkedArrays();
@@ -74,9 +101,11 @@
 			}
 		}
 		window.addEventListener("iterator-link-created", handleLinkCreated);
+		window.addEventListener("keydown", handleKeyDown);
 
 		return () => {
 			window.removeEventListener("iterator-link-created", handleLinkCreated);
+			window.removeEventListener("keydown", handleKeyDown);
 		};
 	});
 </script>
@@ -92,7 +121,15 @@
 >
 	<!-- Iterator Controls -->
 	<div class="iterator-container">
-		<div class="iterator-label" style="color: {color};">Iterator</div>
+		<input
+			type="text"
+			bind:value={name}
+			class="iterator-label"
+			style="color: {color};"
+			placeholder="Iterator"
+			on:input={(e) => dispatch("nameChange", { id, name: e.target.value })}
+			on:click|stopPropagation
+		/>
 		<div class="iterator-controls">
 			<button
 				class="nav-button"
@@ -125,6 +162,11 @@
 		font-weight: bold;
 		margin-bottom: 5px;
 		font-size: 14px;
+		border: none;
+		background: transparent;
+		outline: none;
+		text-align: center;
+		width: 100%;
 		/* color: #444; */
 	}
 	.iterator-controls {

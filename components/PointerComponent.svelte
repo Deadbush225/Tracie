@@ -8,6 +8,7 @@
 	export let value = "";
 	export let hoveredNode = null;
 	export let class_ = "";
+	export let name = "Pointer"; // Display name for the pointer
 
 	import { deleteComponent, updateLinkEndpoints } from "../src/Whiteboard_back";
 	import { createEventDispatcher, onMount } from "svelte";
@@ -142,9 +143,10 @@
 	<!-- Editable line input -->
 	<input
 		type="text"
-		bind:value
+		bind:value={name}
+		placeholder="Pointer"
 		style="width:100%; font-size:1.1em; border:none; outline:none; background:transparent; padding:4px;"
-		on:input={() => dispatch("edit", { id, value })}
+		on:input={() => dispatch("nameChange", { id, name })}
 	/>
 </ComponentBox>
 
