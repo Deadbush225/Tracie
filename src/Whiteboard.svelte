@@ -58,6 +58,16 @@
 	// Dropdown menu states
 	let openDropdown = null;
 
+	// Infinite canvas pan and zoom
+	let panX = 0;
+	let panY = 0;
+	let zoom = 1;
+	let isPanning = false;
+	let panStartX = 0;
+	let panStartY = 0;
+	let panStartMouseX = 0;
+	let panStartMouseY = 0;
+
 	$: comps = $components;
 	$: ls = $links;
 
@@ -787,6 +797,14 @@
 				activeElement.tagName === "TEXTAREA" ||
 				(activeElement as HTMLElement).contentEditable === "true");
 
+		// Reset view with Ctrl+0
+		if (event.ctrlKey && event.key === "0") {
+			event.preventDefault();
+			panX = 0;
+			panY = 0;
+			zoom = 1;
+		}
+
 		// Delete component/link
 		if (event.key === "Delete" || event.key === "Backspace") {
 			// Don't delete components if user is typing
@@ -1029,15 +1047,19 @@
 	let selectionStartPos = null;
 
 	function handleSelectionStart(event) {
-		// Only start selection box if not clicking on a component
-		if (event.target === svgContainer) {
+		// Only start selection box if not clicking on a component and not panning
+		if (event.target === svgContainer && !isPanning && event.button === 0) {
+			// Convert screen coordinates to canvas coordinates
+			const canvasX = (event.clientX - $svgRect.left - panX) / zoom;
+			const canvasY = (event.clientY - $svgRect.top - panY) / zoom;
+			
 			selectionStartPos = {
-				x: event.clientX - $svgRect.left,
-				y: event.clientY - $svgRect.top,
+				x: canvasX,
+				y: canvasY,
 			};
 			selectionBox = {
-				x: event.clientX - $svgRect.left,
-				y: event.clientY - $svgRect.top,
+				x: canvasX,
+				y: canvasY,
 				width: 0,
 				height: 0,
 			};
@@ -1050,14 +1072,14 @@
 	function handleSelectionMove(event) {
 		if (selectionStartPos) {
 			// Update selection box dimensions
-			const currentX = event.clientX - $svgRect.left;
-			const currentY = event.clientY - $svgRect.top;
+			const canvasX = (event.clientX - $svgRect.left - panX) / zoom;
+			const canvasY = (event.clientY - $svgRect.top - panY) / zoom;
 
 			selectionBox = {
-				x: Math.min(selectionStartPos.x, currentX),
-				y: Math.min(selectionStartPos.y, currentY),
-				width: Math.abs(currentX - selectionStartPos.x),
-				height: Math.abs(currentY - selectionStartPos.y),
+				x: Math.min(selectionStartPos.x, canvasX),
+				y: Math.min(selectionStartPos.y, canvasY),
+				width: Math.abs(canvasX - selectionStartPos.x),
+				height: Math.abs(canvasY - selectionStartPos.y),
 			};
 		}
 	}
@@ -1070,21 +1092,20 @@
 			for (const comp of comps) {
 				const el = document.getElementById(`comp-${comp.id}`);
 				if (el) {
-					const originalRect = el.getBoundingClientRect();
-					// Create a new object with adjusted coordinates
-					const rect = {
-						left: originalRect.left - $svgRect.left,
-						right: originalRect.right - $svgRect.left,
-						top: originalRect.top - $svgRect.top,
-						bottom: originalRect.bottom - $svgRect.top,
+					// Component positions are in canvas space already
+					const compRect = {
+						left: comp.x,
+						right: comp.x + (el.offsetWidth || 100),
+						top: comp.y,
+						bottom: comp.y + (el.offsetHeight || 60),
 					};
 
-					// Check if component intersects with selection box
+					// Check if component intersects with selection box (both in canvas space)
 					if (
-						rect.left < selectionBox.x + selectionBox.width &&
-						rect.right > selectionBox.x &&
-						rect.top < selectionBox.y + selectionBox.height &&
-						rect.bottom > selectionBox.y
+						compRect.left < selectionBox.x + selectionBox.width &&
+						compRect.right > selectionBox.x &&
+						compRect.top < selectionBox.y + selectionBox.height &&
+						compRect.bottom > selectionBox.y
 					) {
 						newSelection.push(comp.id);
 					}
@@ -1119,6 +1140,59 @@
 		// Reset selection box
 		selectionBox = null;
 		selectionStartPos = null;
+	}
+
+	// Pan and zoom handlers
+	function handleWheel(event) {
+		event.preventDefault();
+		
+		if (event.ctrlKey) {
+			// Zoom with Ctrl+Wheel
+			const zoomFactor = event.deltaY > 0 ? 0.9 : 1.1;
+			const newZoom = Math.max(0.1, Math.min(3, zoom * zoomFactor));
+			
+			// Zoom towards mouse position
+			const mouseX = event.clientX;
+			const mouseY = event.clientY - 40; // Account for menubar
+			
+			// Adjust pan to zoom towards mouse
+			const dx = mouseX - panX;
+			const dy = mouseY - panY;
+			
+			panX = mouseX - dx * (newZoom / zoom);
+			panY = mouseY - dy * (newZoom / zoom);
+			
+			zoom = newZoom;
+		} else {
+			// Pan with wheel
+			panX -= event.deltaX;
+			panY -= event.deltaY;
+		}
+	}
+
+	function handlePanStart(event) {
+		// Middle mouse button for panning
+		if (event.button === 1) {
+			event.preventDefault();
+			isPanning = true;
+			panStartX = panX;
+			panStartY = panY;
+			panStartMouseX = event.clientX;
+			panStartMouseY = event.clientY;
+		}
+	}
+
+	function handlePanMove(event) {
+		if (isPanning) {
+			const dx = event.clientX - panStartMouseX;
+			const dy = event.clientY - panStartMouseY;
+			panX = panStartX + dx;
+			panY = panStartY + dy;
+		}
+	}
+
+	function handlePanEnd() {
+		isPanning = false;
 	}
 </script>
 
@@ -1310,18 +1384,37 @@
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <div
 	bind:this={svgContainer}
-	style="position:relative; width:100vw; height:calc(100vh - 40px); margin-top:40px; background:#f8f8f8;"
-	on:mousedown={handleSelectionStart}
+	style="position:relative; width:100vw; height:calc(100vh - 40px); margin-top:40px; background:#f8f8f8; overflow:hidden;"
+	on:mousedown={(e) => {
+		handlePanStart(e);
+		handleSelectionStart(e);
+	}}
 	on:mousemove={(e) => {
+		handlePanMove(e);
 		handleSelectionMove(e);
 	}}
 	on:mouseup={(e) => {
+		handlePanEnd();
 		handleSelectionEnd(e);
 	}}
+	on:wheel={handleWheel}
 	role="button"
 	tabindex="0"
 	on:keydown={() => {}}
 >
+	<!-- Grid background pattern -->
+	<svg style="position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none;">
+		<defs>
+			<pattern id="grid" width="{20 * zoom}" height="{20 * zoom}" patternUnits="userSpaceOnUse">
+				<rect width="{20 * zoom}" height="{20 * zoom}" fill="none"/>
+				<path d="M {20 * zoom} 0 L 0 0 0 {20 * zoom}" fill="none" stroke="#e0e0e0" stroke-width="0.5"/>
+			</pattern>
+		</defs>
+		<rect width="100%" height="100%" fill="url(#grid)" style="transform: translate({panX % (20 * zoom)}px, {panY % (20 * zoom)}px);"/>
+	</svg>
+
+	<!-- Canvas content with pan and zoom transform -->
+	<div style="transform: translate({panX}px, {panY}px) scale({zoom}); transform-origin: 0 0; width: 5000px; height: 5000px; position:relative;">
 	{#each comps as comp (comp.id)}
 		{#if comp.type === "array"}
 			<!-- Wrap ArrayComponent so we can handle clicks but not interfere with component's own dragging -->
@@ -1478,7 +1571,7 @@
 
 	<!-- Link rendering with selection highlighting -->
 	<svg
-		style="position:absolute; left:0; top:0; width:100vw; height:100vh; pointer-events:none; z-index:1;"
+		style="position:absolute; left:0; top:0; width:5000px; height:5000px; pointer-events:none; z-index:1;"
 	>
 		<defs>
 			<!-- Arrow marker for normal links -->
@@ -1538,7 +1631,9 @@
 					stroke-width={selectedLinks.includes(link) ? 4 : 2}
 					stroke-dasharray={selectedLinks.includes(link) ? "6,3" : "none"}
 					fill="none"
-					marker-end={selectedLinks.includes(link) ? "url(#arrowhead-selected)" : "url(#arrowhead)"}
+					marker-end={selectedLinks.includes(link)
+						? "url(#arrowhead-selected)"
+						: "url(#arrowhead)"}
 					style="pointer-events:stroke"
 					on:click={(e) => handleLinkClick(link, e)}
 					role="button"
@@ -1593,6 +1688,16 @@
 	{/if}
 
 	<!-- Add the group selection box element -->
+	</div>
+	<!-- End of transformed canvas content -->
+	
+	<!-- Zoom and pan controls indicator -->
+	<div class="canvas-info">
+		<div>Zoom: {(zoom * 100).toFixed(0)}%</div>
+		<div style="font-size: 11px; color: #666; margin-top: 4px;">
+			Scroll: Pan | Ctrl+Scroll: Zoom | Middle Click: Pan | Ctrl+0: Reset
+		</div>
+	</div>
 </div>
 
 <style>
@@ -1707,6 +1812,21 @@
 		background: rgba(33, 150, 243, 0.1);
 		pointer-events: none;
 		z-index: 3;
+	}
+
+	.canvas-info {
+		position: fixed;
+		bottom: 16px;
+		right: 16px;
+		background: rgba(255, 255, 255, 0.9);
+		border: 1px solid #ccc;
+		border-radius: 6px;
+		padding: 8px 12px;
+		font-size: 13px;
+		font-family: monospace;
+		z-index: 1000;
+		pointer-events: none;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 	}
 
 	button:disabled {
