@@ -55,6 +55,9 @@
 	let selectedComponentIds = [];
 	$: selectedComponentIds;
 
+	// Dropdown menu states
+	let openDropdown = null;
+
 	$: comps = $components;
 	$: ls = $links;
 
@@ -183,8 +186,10 @@
 			const width = rect ? rect.width : 120;
 			const height = rect ? rect.height : 60;
 
-			let _x = rect.left;
-			let _y = rect.top;
+			// Use the component's absolute position (newX, newY) instead of viewport coordinates
+			// This matches the behavior in ComponentBox.svelte
+			let _x = newX;
+			let _y = newY;
 
 			switch (toSide) {
 				case "top":
@@ -196,25 +201,29 @@
 				case "right":
 					return { x: _x + width + 6, y: _y + height / 2 };
 			}
-			// return {
-			// 	x: rect.left + (toSide === "right" ? rect.width : toSide === "left" ? 0 : rect.width / 2),
-			// 	y: rect.top + (toSide === "bottom" ? rect.height : toSide === "top" ? 0 : rect.height / 2),
-			// };
 		};
 
 		tick().then(() => {
-			createLink(
-				{
-					componentId: sourceId,
-					side: fromSide,
-					getNodeCenter: sourceGetNodeCenter,
-				},
-				{
-					componentId: newNode.id,
-					side: toSide,
-					getNodeCenter: targetGetNodeCenter,
-				}
-			);
+			// Wait a bit more for the component to fully mount and register its getNodeCenter
+			setTimeout(() => {
+				// Try to get the registered getNodeCenter from the global map
+				const registeredTargetGetNodeCenter =
+					window.__getNodeCenterMap?.[`${newNode.id}-${toSide}`];
+
+				createLink(
+					{
+						componentId: sourceId,
+						side: fromSide,
+						getNodeCenter: sourceGetNodeCenter,
+					},
+					{
+						componentId: newNode.id,
+						side: toSide,
+						// Use the registered function if available, otherwise fallback to temporary
+						getNodeCenter: registeredTargetGetNodeCenter || targetGetNodeCenter,
+					}
+				);
+			}, 10);
 		});
 
 		console.log("After Custom Create Call");
@@ -865,17 +874,26 @@
 		canRedo = h.redoStack.length > 0;
 	});
 
+	// Close dropdown when clicking outside
+	function handleClickOutside(event) {
+		if (openDropdown && !event.target.closest(".menu-item")) {
+			openDropdown = null;
+		}
+	}
+
 	onMount(() => {
 		updateSvgRect();
 		window.addEventListener("resize", updateSvgRect);
 		window.addEventListener("scroll", updateSvgRect);
 		window.addEventListener("keydown", handleKeyDown);
+		window.addEventListener("click", handleClickOutside);
 
 		window.addEventListener("iterator-link-deleted", handleIteratorLinkDeleted);
 		return () => {
 			window.removeEventListener("resize", updateSvgRect);
 			window.removeEventListener("scroll", updateSvgRect);
 			window.removeEventListener("keydown", handleKeyDown);
+			window.removeEventListener("click", handleClickOutside);
 			window.removeEventListener(
 				"iterator-link-deleted",
 				handleIteratorLinkDeleted
@@ -1050,10 +1068,195 @@
 	}
 </script>
 
+<!-- Menu Bar -->
+<div class="menubar">
+	<!-- Components Menu -->
+	<div class="menu-item">
+		<button
+			class="menu-button"
+			on:click={() =>
+				(openDropdown = openDropdown === "components" ? null : "components")}
+		>
+			Components ▾
+		</button>
+		{#if openDropdown === "components"}
+			<div class="dropdown">
+				<div class="dropdown-section">
+					<div class="dropdown-label">Basic Components</div>
+					<button
+						class="dropdown-item"
+						on:click={() => {
+							addArrayComponent();
+							openDropdown = null;
+						}}
+					>
+						Array
+					</button>
+					<button
+						class="dropdown-item"
+						on:click={() => {
+							add2DTableComponent();
+							openDropdown = null;
+						}}
+					>
+						2D Table
+					</button>
+					<button
+						class="dropdown-item"
+						on:click={() => {
+							addPointerComponent();
+							openDropdown = null;
+						}}
+					>
+						Pointer
+					</button>
+					<button
+						class="dropdown-item"
+						on:click={() => {
+							addIteratorComponent();
+							openDropdown = null;
+						}}
+					>
+						Iterator
+					</button>
+				</div>
+				<div class="dropdown-divider"></div>
+				<div class="dropdown-section">
+					<div class="dropdown-label">Tree Nodes</div>
+					<button
+						class="dropdown-item"
+						on:click={() => {
+							addNodeComponent();
+							openDropdown = null;
+						}}
+					>
+						Simple Node
+					</button>
+					<button
+						class="dropdown-item"
+						on:click={() => {
+							addBinaryNodeComponent();
+							openDropdown = null;
+						}}
+					>
+						Binary Node
+					</button>
+					<button
+						class="dropdown-item"
+						on:click={() => {
+							addNaryNodeComponent();
+							openDropdown = null;
+						}}
+					>
+						N-ary Node
+					</button>
+				</div>
+			</div>
+		{/if}
+	</div>
+
+	<!-- Edit Menu -->
+	<div class="menu-item">
+		<button
+			class="menu-button"
+			on:click={() => (openDropdown = openDropdown === "edit" ? null : "edit")}
+		>
+			Edit ▾
+		</button>
+		{#if openDropdown === "edit"}
+			<div class="dropdown">
+				<button
+					class="dropdown-item"
+					on:click={() => {
+						undo();
+						openDropdown = null;
+					}}
+					disabled={!canUndo}
+				>
+					<span class="shortcut">Ctrl+Z</span> Undo
+				</button>
+				<button
+					class="dropdown-item"
+					on:click={() => {
+						redo();
+						openDropdown = null;
+					}}
+					disabled={!canRedo}
+				>
+					<span class="shortcut">Ctrl+Y</span> Redo
+				</button>
+				<div class="dropdown-divider"></div>
+				<button
+					class="dropdown-item"
+					on:click={() => {
+						deleteSelectedLinks();
+						openDropdown = null;
+					}}
+					disabled={selectedLinks.length === 0 &&
+						selectedComponentIds.length === 0}
+				>
+					<span class="shortcut">Del</span> Delete Selected
+				</button>
+			</div>
+		{/if}
+	</div>
+
+	<!-- Tools Menu -->
+	<div class="menu-item">
+		<button
+			class="menu-button"
+			on:click={() =>
+				(openDropdown = openDropdown === "tools" ? null : "tools")}
+		>
+			Tools ▾
+		</button>
+		{#if openDropdown === "tools"}
+			<div class="dropdown">
+				<button
+					class="dropdown-item"
+					on:click={() => {
+						if (selectedLinks.length > 0) {
+							selectedLinks.forEach((link) => optimizeLinkPath(link));
+						} else {
+							optimizeAllLinks();
+						}
+						openDropdown = null;
+					}}
+				>
+					<span class="shortcut">Ctrl+O</span>
+					{selectedLinks.length > 0
+						? "Optimize Selected Links"
+						: "Optimize All Links"}
+				</button>
+				<button
+					class="dropdown-item"
+					on:click={() => {
+						if (selectedComponentIds.length > 0) {
+							selectedComponentIds.forEach((nodeId) => {
+								const node = $components.find((c) => c.id === nodeId);
+								if (
+									node &&
+									(node.type === "binary-node" || node.type === "nary-node")
+								) {
+									autoLayoutTree(nodeId);
+								}
+							});
+						}
+						openDropdown = null;
+					}}
+					disabled={selectedComponentIds.length === 0}
+				>
+					<span class="shortcut">Ctrl+L</span> Auto-Layout Tree
+				</button>
+			</div>
+		{/if}
+	</div>
+</div>
+
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <div
 	bind:this={svgContainer}
-	style="position:relative; width:100vw; height:100vh; background:#f8f8f8;"
+	style="position:relative; width:100vw; height:calc(100vh - 40px); margin-top:40px; background:#f8f8f8;"
 	on:mousedown={handleSelectionStart}
 	on:mousemove={(e) => {
 		handleSelectionMove(e);
@@ -1065,188 +1268,154 @@
 	tabindex="0"
 	on:keydown={() => {}}
 >
-	<div class="menu">
-		<button on:click={addArrayComponent}>Add Array</button>
-		<button on:click={add2DTableComponent}>Add 2D Table</button>
-		<button on:click={addPointerComponent}>Add Pointer</button>
-		<button on:click={addIteratorComponent}>Add Iterator</button>
-		<button on:click={addNodeComponent}>Add Node</button>
-		<button on:click={addBinaryNodeComponent}>Add Binary Node</button>
-		<button on:click={addNaryNodeComponent}>Add N-ary Node</button>
-		<div style="width: 20px;"></div>
-		<!-- Spacer -->
-		<button on:click={undo} disabled={!canUndo} title="Undo (Ctrl+Z)">
-			Undo
-		</button>
-		<button on:click={redo} disabled={!canRedo} title="Redo (Ctrl+Y)">
-			Redo
-		</button>
-		<div style="width: 20px;"></div>
-		<!-- Spacer -->
-		<button
-			on:click={() => {
-				if (selectedLinks.length > 0) {
-					selectedLinks.forEach((link) => optimizeLinkPath(link));
-				} else {
-					optimizeAllLinks();
-				}
-			}}
-			title="Optimize link paths to shortest distance (Ctrl+O)"
-		>
-			{selectedLinks.length > 0 ? "Optimize Selected" : "Optimize All Links"}
-		</button>
-	</div>
-
-	<div>
-		{#each comps as comp (comp.id)}
-			{#if comp.type === "array"}
-				<!-- Wrap ArrayComponent so we can handle clicks but not interfere with component's own dragging -->
-				<div
-					class="component-placeholder"
-					on:mousedown={(e) => handleComponentClick(comp, e)}
-					role="button"
-					tabindex="0"
-					on:keydown={() => {}}
-				>
-					<ArrayComponent
-						id={comp.id}
-						x={comp.x}
-						y={comp.y}
-						length={comp.length}
-						on:nodeMouseDown={handleNodeMouseDown}
-						on:indexUpdate={handleIteratorIndexUpdate}
-						on:move={handleComponentMove}
-						on:redraw={() => {}}
-						on:delete={(e) => deleteComponent(e.detail.id)}
-					/>
-				</div>
-			{:else if comp.type === "2darray"}
-				<div
-					class="component-placeholder"
-					on:mousedown={(e) => handleComponentClick(comp, e)}
-					role="button"
-					tabindex="0"
-					on:keydown={() => {}}
-				>
-					<Table2DComponent
-						id={comp.id}
-						x={comp.x}
-						y={comp.y}
-						rows={comp.rows}
-						cols={comp.cols}
-						on:nodeMouseDown={handleNodeMouseDown}
-						on:move={handleComponentMove}
-						on:redraw={() => {}}
-						on:delete={(e) => deleteComponent(e.detail.id)}
-					/>
-				</div>
-			{:else if comp.type === "pointer"}
-				<div
-					class="component-placeholder"
-					on:mousedown={(e) => handleComponentClick(comp, e)}
-					role="button"
-					tabindex="0"
-					on:keydown={() => {}}
-				>
-					<PointerComponent
-						id={comp.id}
-						x={comp.x}
-						y={comp.y}
-						value={comp.value}
-						on:nodeMouseDown={handleNodeMouseDown}
-						{hoveredNode}
-						on:move={handleComponentMove}
-						on:redraw={() => {}}
-						on:delete={(e) => deleteComponent(e.detail.id)}
-					/>
-				</div>
-			{:else if comp.type === "iterator"}
-				<div
-					class="component-placeholder"
-					on:mousedown={(e) => handleComponentClick(comp, e)}
-					role="button"
-					tabindex="0"
-					on:keydown={() => {}}
-				>
-					<IteratorComponent
-						id={comp.id}
-						x={comp.x}
-						y={comp.y}
-						linkedArrays={comp.linkedArrays || []}
-						on:nodeMouseDown={handleNodeMouseDown}
-						on:indexUpdate={handleIteratorIndexUpdate}
-						{hoveredNode}
-						on:move={handleComponentMove}
-						on:redraw={() => {}}
-						color={comp.color}
-						on:delete={(e) => deleteComponent(e.detail.id)}
-					/>
-				</div>
-			{:else if comp.type === "node"}
-				<div
-					class="component-placeholder"
-					on:mousedown={(e) => handleComponentClick(comp, e)}
-					role="button"
-					tabindex="0"
-					on:keydown={() => {}}
-				>
-					<NodeComponent
-						id={comp.id}
-						x={comp.x}
-						y={comp.y}
-						value={comp.value}
-						selected={selectedComponentIds.includes(comp.id)}
-						on:nodeMouseDown={handleNodeMouseDown}
-						on:createConnectedNode={handleCreateConnectedNode}
-						on:move={handleComponentMove}
-						on:delete={(e) => deleteComponent(e.detail.id)}
-					></NodeComponent>
-				</div>
-			{:else if comp.type === "binary-node"}
-				<div
-					class="component-placeholder"
-					on:mousedown={(e) => handleComponentClick(comp, e)}
-					role="button"
-					tabindex="0"
-					on:keydown={() => {}}
-				>
-					<BinaryNodeComponent
-						id={comp.id}
-						x={comp.x}
-						y={comp.y}
-						value={comp.value}
-						selected={selectedComponentIds.includes(comp.id)}
-						on:nodeMouseDown={handleNodeMouseDown}
-						on:createConnectedNode={handleCreateConnectedNode}
-						on:move={handleComponentMove}
-						on:delete={(e) => deleteComponent(e.detail.id)}
-					></BinaryNodeComponent>
-				</div>
-			{:else if comp.type === "nary-node"}
-				<div
-					class="component-placeholder"
-					on:mousedown={(e) => handleComponentClick(comp, e)}
-					role="button"
-					tabindex="0"
-					on:keydown={() => {}}
-				>
-					<NaryNodeComponent
-						id={comp.id}
-						x={comp.x}
-						y={comp.y}
-						value={comp.value}
-						childCount={comp.childCount || 3}
-						selected={selectedComponentIds.includes(comp.id)}
-						on:nodeMouseDown={handleNodeMouseDown}
-						on:createConnectedNode={handleCreateConnectedNode}
-						on:move={handleComponentMove}
-						on:delete={(e) => deleteComponent(e.detail.id)}
-					></NaryNodeComponent>
-				</div>
-			{/if}
-		{/each}
-		<div class="group-selection-box"></div>
-	</div>
+	{#each comps as comp (comp.id)}
+		{#if comp.type === "array"}
+			<!-- Wrap ArrayComponent so we can handle clicks but not interfere with component's own dragging -->
+			<div
+				class="component-placeholder"
+				on:mousedown={(e) => handleComponentClick(comp, e)}
+				role="button"
+				tabindex="0"
+				on:keydown={() => {}}
+			>
+				<ArrayComponent
+					id={comp.id}
+					x={comp.x}
+					y={comp.y}
+					length={comp.length}
+					on:nodeMouseDown={handleNodeMouseDown}
+					on:indexUpdate={handleIteratorIndexUpdate}
+					on:move={handleComponentMove}
+					on:redraw={() => {}}
+					on:delete={(e) => deleteComponent(e.detail.id)}
+				/>
+			</div>
+		{:else if comp.type === "2darray"}
+			<div
+				class="component-placeholder"
+				on:mousedown={(e) => handleComponentClick(comp, e)}
+				role="button"
+				tabindex="0"
+				on:keydown={() => {}}
+			>
+				<Table2DComponent
+					id={comp.id}
+					x={comp.x}
+					y={comp.y}
+					rows={comp.rows}
+					cols={comp.cols}
+					on:nodeMouseDown={handleNodeMouseDown}
+					on:move={handleComponentMove}
+					on:redraw={() => {}}
+					on:delete={(e) => deleteComponent(e.detail.id)}
+				/>
+			</div>
+		{:else if comp.type === "pointer"}
+			<div
+				class="component-placeholder"
+				on:mousedown={(e) => handleComponentClick(comp, e)}
+				role="button"
+				tabindex="0"
+				on:keydown={() => {}}
+			>
+				<PointerComponent
+					id={comp.id}
+					x={comp.x}
+					y={comp.y}
+					value={comp.value}
+					on:nodeMouseDown={handleNodeMouseDown}
+					{hoveredNode}
+					on:move={handleComponentMove}
+					on:redraw={() => {}}
+					on:delete={(e) => deleteComponent(e.detail.id)}
+				/>
+			</div>
+		{:else if comp.type === "iterator"}
+			<div
+				class="component-placeholder"
+				on:mousedown={(e) => handleComponentClick(comp, e)}
+				role="button"
+				tabindex="0"
+				on:keydown={() => {}}
+			>
+				<IteratorComponent
+					id={comp.id}
+					x={comp.x}
+					y={comp.y}
+					linkedArrays={comp.linkedArrays || []}
+					on:nodeMouseDown={handleNodeMouseDown}
+					on:indexUpdate={handleIteratorIndexUpdate}
+					{hoveredNode}
+					on:move={handleComponentMove}
+					on:redraw={() => {}}
+					color={comp.color}
+					on:delete={(e) => deleteComponent(e.detail.id)}
+				/>
+			</div>
+		{:else if comp.type === "node"}
+			<div
+				class="component-placeholder"
+				on:mousedown={(e) => handleComponentClick(comp, e)}
+				role="button"
+				tabindex="0"
+				on:keydown={() => {}}
+			>
+				<NodeComponent
+					id={comp.id}
+					x={comp.x}
+					y={comp.y}
+					value={comp.value}
+					selected={selectedComponentIds.includes(comp.id)}
+					on:nodeMouseDown={handleNodeMouseDown}
+					on:createConnectedNode={handleCreateConnectedNode}
+					on:move={handleComponentMove}
+					on:delete={(e) => deleteComponent(e.detail.id)}
+				></NodeComponent>
+			</div>
+		{:else if comp.type === "binary-node"}
+			<div
+				class="component-placeholder"
+				on:mousedown={(e) => handleComponentClick(comp, e)}
+				role="button"
+				tabindex="0"
+				on:keydown={() => {}}
+			>
+				<BinaryNodeComponent
+					id={comp.id}
+					x={comp.x}
+					y={comp.y}
+					value={comp.value}
+					selected={selectedComponentIds.includes(comp.id)}
+					on:nodeMouseDown={handleNodeMouseDown}
+					on:createConnectedNode={handleCreateConnectedNode}
+					on:move={handleComponentMove}
+					on:delete={(e) => deleteComponent(e.detail.id)}
+				></BinaryNodeComponent>
+			</div>
+		{:else if comp.type === "nary-node"}
+			<div
+				class="component-placeholder"
+				on:mousedown={(e) => handleComponentClick(comp, e)}
+				role="button"
+				tabindex="0"
+				on:keydown={() => {}}
+			>
+				<NaryNodeComponent
+					id={comp.id}
+					x={comp.x}
+					y={comp.y}
+					value={comp.value}
+					childCount={comp.childCount || 3}
+					selected={selectedComponentIds.includes(comp.id)}
+					on:nodeMouseDown={handleNodeMouseDown}
+					on:createConnectedNode={handleCreateConnectedNode}
+					on:move={handleComponentMove}
+					on:delete={(e) => deleteComponent(e.detail.id)}
+				></NaryNodeComponent>
+			</div>
+		{/if}
+	{/each}
+	<div class="group-selection-box"></div>
 
 	<!-- Link rendering with selection highlighting -->
 	<svg
@@ -1328,14 +1497,100 @@
 </div>
 
 <style>
-	.menu {
+	.menubar {
 		display: flex;
-		flex-direction: row;
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		background: linear-gradient(to bottom, #f5f5f5, #e8e8e8);
+		border-bottom: 1px solid #ccc;
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+		z-index: 1000;
+		padding: 0;
+		height: 40px;
+		user-select: none;
+	}
+
+	.menu-item {
+		position: relative;
+	}
+
+	.menu-button {
+		background: transparent;
+		border: none;
+		padding: 10px 16px;
+		cursor: pointer;
+		font-size: 14px;
+		font-weight: 500;
+		color: #333;
+		height: 40px;
+		transition: background-color 0.15s;
+	}
+
+	.menu-button:hover {
+		background-color: rgba(0, 0, 0, 0.08);
+	}
+
+	.dropdown {
 		position: absolute;
-		top: 10px;
-		left: 10px;
-		z-index: 10;
-		gap: 10px;
+		top: 40px;
+		left: 0;
+		background: white;
+		border: 1px solid #ccc;
+		border-radius: 4px;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+		min-width: 220px;
+		padding: 4px 0;
+		z-index: 1001;
+	}
+
+	.dropdown-section {
+		padding: 4px 0;
+	}
+
+	.dropdown-label {
+		padding: 6px 12px;
+		font-size: 11px;
+		font-weight: 600;
+		color: #666;
+		text-transform: uppercase;
+		letter-spacing: 0.5px;
+	}
+
+	.dropdown-item {
+		display: block;
+		width: 100%;
+		padding: 8px 12px;
+		border: none;
+		background: transparent;
+		text-align: left;
+		cursor: pointer;
+		font-size: 14px;
+		color: #333;
+		transition: background-color 0.1s;
+	}
+
+	.dropdown-item:hover:not(:disabled) {
+		background-color: #e3f2fd;
+	}
+
+	.dropdown-item:disabled {
+		color: #999;
+		cursor: not-allowed;
+	}
+
+	.dropdown-divider {
+		height: 1px;
+		background-color: #e0e0e0;
+		margin: 4px 0;
+	}
+
+	.shortcut {
+		float: right;
+		font-size: 12px;
+		color: #888;
+		margin-left: 20px;
 	}
 
 	.group-selection-box {

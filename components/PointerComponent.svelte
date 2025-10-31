@@ -130,9 +130,21 @@
 	});
 </script>
 
-<ComponentBox {id} {x} {y} {class_} on:move={(e) => dispatch("move", e.detail)} on:nodeMouseDown={(e) => dispatch("nodeMouseDown", e.detail)}>
+<ComponentBox
+	{id}
+	{x}
+	{y}
+	{class_}
+	on:move={(e) => dispatch("move", e.detail)}
+	on:nodeMouseDown={(e) => dispatch("nodeMouseDown", e.detail)}
+>
 	<!-- Editable line input -->
-	<input type="text" bind:value style="width:100%; font-size:1.1em; border:none; outline:none; background:transparent; padding:4px;" on:input={() => dispatch("edit", { id, value })} />
+	<input
+		type="text"
+		bind:value
+		style="width:100%; font-size:1.1em; border:none; outline:none; background:transparent; padding:4px;"
+		on:input={() => dispatch("edit", { id, value })}
+	/>
 </ComponentBox>
 
 <style>

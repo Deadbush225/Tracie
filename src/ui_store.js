@@ -7,11 +7,11 @@ export function updateSvgRect2(svgContainer) {
 		const rect = svgContainer.getBoundingClientRect();
 		// Store the viewport-relative position
 		// This will be used to convert clientX/Y to container-relative coordinates
-		svgRect.set({ 
-			left: rect.left, 
+		svgRect.set({
+			left: rect.left,
 			top: rect.top,
 			scrollX: window.scrollX,
-			scrollY: window.scrollY
+			scrollY: window.scrollY,
 		});
 	}
 }

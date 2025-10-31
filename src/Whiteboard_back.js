@@ -621,9 +621,9 @@ function getDistance(x1, y1, x2, y2) {
 // Function to get all possible connection points for a component
 function getConnectionPoints(componentId) {
 	// Get component to determine its type
-	const component = get(components).find(c => c.id === componentId);
+	const component = get(components).find((c) => c.id === componentId);
 	let sides = ["top", "right", "bottom", "left"];
-	
+
 	// Add type-specific connection points
 	if (component) {
 		switch (component.type) {
@@ -636,7 +636,7 @@ function getConnectionPoints(componentId) {
 			// Regular nodes and other components use default 4 sides
 		}
 	}
-	
+
 	const points = {};
 
 	sides.forEach((side) => {
