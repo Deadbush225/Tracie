@@ -281,6 +281,7 @@
 	{class_}
 	on:move={(e) => dispatch("move", e.detail)}
 	on:nodeMouseDown={(e) => dispatch("nodeMouseDown", e.detail)}
+	on:delete={(e) => dispatch("delete", e.detail)}
 >
 	<table style="border-collapse:collapse;">
 		<tbody>

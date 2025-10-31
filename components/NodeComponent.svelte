@@ -46,6 +46,7 @@
 	borderColor="#1976d2"
 	on:move={(e) => dispatch("move", e.detail)}
 	on:nodeMouseDown={(e) => dispatch("nodeMouseDown", e.detail)}
+	on:delete={(e) => dispatch("delete", e.detail)}
 >
 	<div class="node-container">
 		<!-- The rectangular node -->

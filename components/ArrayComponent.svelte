@@ -147,7 +147,7 @@
 	}
 </script>
 
-<ComponentBox {id} {x} {y} {class_} on:move={(e) => dispatch("move", e.detail)} on:nodeMouseDown={(e) => dispatch("nodeMouseDown", e.detail)}>
+<ComponentBox {id} {x} {y} {class_} on:move={(e) => dispatch("move", e.detail)} on:nodeMouseDown={(e) => dispatch("nodeMouseDown", e.detail)} on:delete={(e) => dispatch("delete", e.detail)}>
 	<!-- Table -->
 	<table style="border-collapse:collapse;">
 		<tbody>

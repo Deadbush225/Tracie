@@ -81,7 +81,7 @@
 	});
 </script>
 
-<ComponentBox {id} {x} {y} {class_} on:move={(e) => dispatch("move", e.detail)} on:nodeMouseDown={(e) => dispatch("nodeMouseDown", e.detail)}>
+<ComponentBox {id} {x} {y} {class_} on:move={(e) => dispatch("move", e.detail)} on:nodeMouseDown={(e) => dispatch("nodeMouseDown", e.detail)} on:delete={(e) => dispatch("delete", e.detail)}>
 	<!-- Iterator Controls -->
 	<div class="iterator-container">
 		<div class="iterator-label" style="color: {color};">Iterator</div>
