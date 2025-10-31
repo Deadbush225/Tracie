@@ -644,6 +644,39 @@
 				repositionedIds.includes(link.to.componentId)
 		);
 		affectedLinks.forEach((link) => optimizeLinkPath(link));
+
+		// Update selection box after layout
+		await tick();
+		updateSelectionBox();
+	}
+
+	// Function to update the selection box
+	function updateSelectionBox() {
+		const selectionOverlay = document.querySelector(".group-selection-box");
+
+		if (selectedComponentIds.length > 0 && selectionOverlay) {
+			// Find bounding box of all selected components
+			let minX = Infinity;
+			let minY = Infinity;
+			let maxX = -Infinity;
+			let maxY = -Infinity;
+
+			selectedComponentIds.forEach((id) => {
+				const box = getComponentBox(id);
+				if (box) {
+					minX = Math.min(minX, box.left) - 3;
+					minY = Math.min(minY, box.top) - 3;
+					maxX = Math.max(maxX, box.right) + 4;
+					maxY = Math.max(maxY, box.bottom) + 4;
+				}
+			});
+
+			selectionOverlay.style.left = `${minX}px`;
+			selectionOverlay.style.top = `${minY}px`;
+			selectionOverlay.style.width = `${maxX - minX}px`;
+			selectionOverlay.style.height = `${maxY - minY}px`;
+			selectionOverlay.style.opacity = "100%";
+		}
 	}
 
 	// Helper to get endpoints and path for all links (reactive)
