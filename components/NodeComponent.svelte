@@ -42,6 +42,8 @@
 	{x}
 	{y}
 	{class_}
+	borderRadius="50%"
+	borderColor="#1976d2"
 	on:move={(e) => dispatch("move", e.detail)}
 	on:nodeMouseDown={(e) => dispatch("nodeMouseDown", e.detail)}
 >
@@ -131,14 +133,10 @@
 	.node {
 		width: 100%;
 		height: 100%;
-		/* border: 2px solid #1976d2; */
-		border-radius: 50%;
-		background: white;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		position: relative;
-		/* box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); */
 		/* padding-left: 10px; */
 	}
 

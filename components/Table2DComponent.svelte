@@ -47,7 +47,9 @@
 
 	let data = Array.from({ length: rows }, () => Array(cols).fill(""));
 	$: if (data.length !== rows || data[0]?.length !== cols) {
-		const newData = Array.from({ length: rows }, (_, r) => Array.from({ length: cols }, (_, c) => data[r]?.[c] ?? ""));
+		const newData = Array.from({ length: rows }, (_, r) =>
+			Array.from({ length: cols }, (_, c) => data[r]?.[c] ?? "")
+		);
 		data = newData;
 	}
 
@@ -77,25 +79,32 @@
 	}
 
 	function handleColMouseMove(colIdx) {
-		if (isReorderingCol && draggingColIndex !== null && colIdx !== draggingColIndex) {
+		if (
+			isReorderingCol &&
+			draggingColIndex !== null &&
+			colIdx !== draggingColIndex
+		) {
 			hoverColIndex = colIdx;
-			
+
 			// Swap entire columns
-			const newData = data.map(row => [...row]);
-			
+			const newData = data.map((row) => [...row]);
+
 			if (swap) {
 				// Swap columns in each row
-				newData.forEach(row => {
-					[row[draggingColIndex], row[hoverColIndex]] = [row[hoverColIndex], row[draggingColIndex]];
+				newData.forEach((row) => {
+					[row[draggingColIndex], row[hoverColIndex]] = [
+						row[hoverColIndex],
+						row[draggingColIndex],
+					];
 				});
 			} else {
 				// Move column (insert behavior)
-				newData.forEach(row => {
+				newData.forEach((row) => {
 					const [moved] = row.splice(draggingColIndex, 1);
 					row.splice(hoverColIndex, 0, moved);
 				});
 			}
-			
+
 			data = newData;
 			draggingColIndex = hoverColIndex;
 		}
@@ -116,20 +125,27 @@
 	}
 
 	function handleRowMouseMove(rowIdx) {
-		if (isReorderingRow && draggingRowIndex !== null && rowIdx !== draggingRowIndex) {
+		if (
+			isReorderingRow &&
+			draggingRowIndex !== null &&
+			rowIdx !== draggingRowIndex
+		) {
 			hoverRowIndex = rowIdx;
-			
+
 			const newData = [...data];
-			
+
 			if (swap) {
 				// Swap entire rows
-				[newData[draggingRowIndex], newData[hoverRowIndex]] = [newData[hoverRowIndex], newData[draggingRowIndex]];
+				[newData[draggingRowIndex], newData[hoverRowIndex]] = [
+					newData[hoverRowIndex],
+					newData[draggingRowIndex],
+				];
 			} else {
 				// Move row (insert behavior)
 				const [moved] = newData.splice(draggingRowIndex, 1);
 				newData.splice(hoverRowIndex, 0, moved);
 			}
-			
+
 			data = newData;
 			draggingRowIndex = hoverRowIndex;
 		}
@@ -145,7 +161,7 @@
 	function handleCellMouseDown(rowIdx, colIdx, event) {
 		// Only start dragging on right-click (button 2)
 		if (event.button !== 2) return;
-		
+
 		draggingCell = { row: rowIdx, col: colIdx };
 		hoverCell = { row: rowIdx, col: colIdx };
 		isDraggingCell = true;
@@ -154,22 +170,30 @@
 	}
 
 	function handleCellMouseMove(rowIdx, colIdx) {
-		if (isDraggingCell && draggingCell && 
-			(rowIdx !== draggingCell.row || colIdx !== draggingCell.col)) {
+		if (
+			isDraggingCell &&
+			draggingCell &&
+			(rowIdx !== draggingCell.row || colIdx !== draggingCell.col)
+		) {
 			hoverCell = { row: rowIdx, col: colIdx };
 		}
 	}
 
 	function handleCellMouseUp(rowIdx, colIdx, event) {
-		if (isDraggingCell && draggingCell && 
-			(rowIdx !== draggingCell.row || colIdx !== draggingCell.col)) {
+		if (
+			isDraggingCell &&
+			draggingCell &&
+			(rowIdx !== draggingCell.row || colIdx !== draggingCell.col)
+		) {
 			// Swap cell values
-			const newData = data.map(row => [...row]);
-			[newData[draggingCell.row][draggingCell.col], newData[rowIdx][colIdx]] = 
-				[newData[rowIdx][colIdx], newData[draggingCell.row][draggingCell.col]];
+			const newData = data.map((row) => [...row]);
+			[newData[draggingCell.row][draggingCell.col], newData[rowIdx][colIdx]] = [
+				newData[rowIdx][colIdx],
+				newData[draggingCell.row][draggingCell.col],
+			];
 			data = newData;
 		}
-		
+
 		draggingCell = null;
 		hoverCell = null;
 		isDraggingCell = false;
@@ -191,9 +215,9 @@
 				isDraggingCell = false;
 			}
 		};
-		
+
 		window.addEventListener("mouseup", handleGlobalMouseUp);
-		
+
 		const unsubscribe = getContext("iteratorStore").subscribe((store) => {
 			if (!store) return;
 			highlightedCols = {};
@@ -205,16 +229,24 @@
 				const comp = get(components).find((c) => c.id === update.iteratorId);
 				const color = comp?.color || update.color || "#ffeb3b";
 
-				if (update.linkDirection === "top" || update.linkDirection === "bottom") {
-					if (!highlightedCols[update.index]) highlightedCols[update.index] = [];
+				if (
+					update.linkDirection === "top" ||
+					update.linkDirection === "bottom"
+				) {
+					if (!highlightedCols[update.index])
+						highlightedCols[update.index] = [];
 					highlightedCols[update.index].push(color);
-				} else if (update.linkDirection === "left" || update.linkDirection === "right") {
-					if (!highlightedRows[update.index]) highlightedRows[update.index] = [];
+				} else if (
+					update.linkDirection === "left" ||
+					update.linkDirection === "right"
+				) {
+					if (!highlightedRows[update.index])
+						highlightedRows[update.index] = [];
 					highlightedRows[update.index].push(color);
 				}
 			});
 		});
-		
+
 		return () => {
 			window.removeEventListener("mouseup", handleGlobalMouseUp);
 			unsubscribe();
@@ -242,17 +274,26 @@
 	}
 </script>
 
-<ComponentBox {id} {x} {y} {class_} on:move={(e) => dispatch("move", e.detail)} on:nodeMouseDown={(e) => dispatch("nodeMouseDown", e.detail)}>
+<ComponentBox
+	{id}
+	{x}
+	{y}
+	{class_}
+	on:move={(e) => dispatch("move", e.detail)}
+	on:nodeMouseDown={(e) => dispatch("nodeMouseDown", e.detail)}
+>
 	<table style="border-collapse:collapse;">
 		<tbody>
 			<tr>
 				<td style="border:1px solid #888; padding:6px;"></td>
 				{#each Array(cols) as _, c}
-					<td 
-						class="header" 
+					<td
+						class="header"
 						style="border:1px solid #888; padding:6px; background:#e3e3e3; cursor:move; text-align:center;
 							{draggingColIndex === c ? 'opacity:0.5;' : ''}
-							{hoverColIndex === c && draggingColIndex !== null && isReorderingCol ? 'outline:2px dashed #1976d2;' : ''}
+							{hoverColIndex === c && draggingColIndex !== null && isReorderingCol
+							? 'outline:2px dashed #1976d2;'
+							: ''}
 							background:{blendColors(highlightedCols[c])};"
 						on:mousedown={(e) => handleColMouseDown(c, e)}
 						on:mousemove={() => handleColMouseMove(c)}
@@ -263,11 +304,13 @@
 			</tr>
 			{#each Array(rows) as _, r}
 				<tr>
-					<td 
-						class="header" 
+					<td
+						class="header"
 						style="border:1px solid #888; padding:6px; text-align:center; background:#e3e3e3; cursor:move;
 							{draggingRowIndex === r ? 'opacity:0.5;' : ''}
-							{hoverRowIndex === r && draggingRowIndex !== null && isReorderingRow ? 'outline:2px dashed #1976d2;' : ''}
+							{hoverRowIndex === r && draggingRowIndex !== null && isReorderingRow
+							? 'outline:2px dashed #1976d2;'
+							: ''}
 							background:{blendColors(highlightedRows[r])};"
 						on:mousedown={(e) => handleRowMouseDown(r, e)}
 						on:mousemove={() => handleRowMouseMove(r)}
@@ -277,8 +320,12 @@
 					{#each Array(cols) as _, c}
 						<td
 							style="border:1px solid #888; padding:6px; cursor:text;
-								{isDraggingCell && draggingCell?.row === r && draggingCell?.col === c ? 'opacity:0.5;' : ''}
-								{hoverCell?.row === r && hoverCell?.col === c && isDraggingCell ? 'outline:2px dashed #4caf50;' : ''}
+								{isDraggingCell && draggingCell?.row === r && draggingCell?.col === c
+								? 'opacity:0.5;'
+								: ''}
+								{hoverCell?.row === r && hoverCell?.col === c && isDraggingCell
+								? 'outline:2px dashed #4caf50;'
+								: ''}
 								background:{getIntersectionColor(highlightedRows[r], highlightedCols[c])};"
 							on:mousedown={(e) => handleCellMouseDown(r, c, e)}
 							on:mousemove={() => handleCellMouseMove(r, c)}

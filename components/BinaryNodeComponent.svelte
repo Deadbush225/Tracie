@@ -43,6 +43,8 @@
 	{y}
 	{class_}
 	connectionPoints={["top", "bottom-left", "bottom-right"]}
+	borderRadius="50%"
+	borderColor="#1976d2"
 	on:move={(e) => dispatch("move", e.detail)}
 	on:nodeMouseDown={(e) => dispatch("nodeMouseDown", e.detail)}
 	on:delete={(e) => dispatch("delete", e.detail)}
@@ -105,9 +107,6 @@
 	.binary-node {
 		width: 100%;
 		height: 100%;
-		border: 2px solid #1976d2;
-		border-radius: 50%;
-		background: white;
 		display: flex;
 		align-items: center;
 		justify-content: center;

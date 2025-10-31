@@ -52,6 +52,8 @@
 	{y}
 	{class_}
 	connectionPoints={["top", "bottom"]}
+	borderRadius="50%"
+	borderColor="#2e7d32"
 	on:move={(e) => dispatch("move", e.detail)}
 	on:nodeMouseDown={(e) => dispatch("nodeMouseDown", e.detail)}
 	on:delete={(e) => dispatch("delete", e.detail)}
@@ -107,9 +109,6 @@
 	.nary-node {
 		width: 100%;
 		height: 100%;
-		border: 2px solid #2e7d32;
-		border-radius: 8px;
-		background: white;
 		display: flex;
 		align-items: center;
 		justify-content: center;

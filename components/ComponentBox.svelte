@@ -10,6 +10,10 @@
 	export let deletable = true;
 	// New prop: array of connection point names (e.g., ["top", "bottom-left", "bottom-right"])
 	export let connectionPoints = ["top", "bottom", "left", "right"];
+	// New prop: border radius for shape customization (default 6px for backwards compatibility)
+	export let borderRadius = "6px";
+	// New prop: border color (default #333)
+	export let borderColor = "#333";
 
 	let container;
 	let dragging = false;
@@ -122,7 +126,7 @@
 	bind:this={container}
 	id={"comp-" + id}
 	class={class_}
-	style="position:absolute; left:{x}px; top:{y}px; border:1px solid #333; background:#fff; border-radius:6px; box-shadow:0 2px 8px #0002; user-select:none; cursor:{dragging
+	style="position:absolute; left:{x}px; top:{y}px; border:2px solid {borderColor}; background:#fff; border-radius:{borderRadius}; box-shadow:0 2px 8px #0002; user-select:none; cursor:{dragging
 		? 'grabbing'
 		: 'default'}; padding:8px;"
 	on:mousedown={handleMouseDown}
