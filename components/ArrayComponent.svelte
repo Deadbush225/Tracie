@@ -52,6 +52,12 @@
 		} else {
 			data = data.slice(0, length);
 		}
+
+		dispatch("propertyChange", {
+			id,
+			property: "data",
+			value: data,
+		});
 	}
 
 	// Row drag state

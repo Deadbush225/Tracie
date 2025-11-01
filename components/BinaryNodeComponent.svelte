@@ -10,7 +10,6 @@
 	export let selected = false;
 
 	const dispatch = createEventDispatcher();
-	let editing = false;
 
 	// Handle creating a new connected node
 	function createNodeInDirection(direction) {
@@ -18,22 +17,6 @@
 			sourceId: id,
 			direction,
 		});
-	}
-
-	function handleDblClick() {
-		editing = true;
-		setTimeout(() => {
-			const input = document.getElementById(`binary-node-edit-${id}`);
-			if (input) input.focus();
-		}, 0);
-	}
-
-	function handleBlur() {
-		editing = false;
-	}
-
-	function handleInput(e) {
-		value = e.target.value;
 	}
 </script>
 
@@ -52,20 +35,17 @@
 	<div class="binary-node-container">
 		<!-- The binary node -->
 		<div class="binary-node">
-			<!-- Main content -->
-			{#if editing}
-				<input
-					id={"binary-node-edit-" + id}
-					{value}
-					on:input={handleInput}
-					on:blur={handleBlur}
-					class="node-input"
-				/>
-			{:else}
-				<span class="node-value" on:dblclick={handleDblClick}>
-					{value || "Value"}
-				</span>
-			{/if}
+			<input
+				bind:value
+				class="node-input"
+				on:change={(e) => {
+					dispatch("propertyChange", {
+						id,
+						property: "value",
+						value: e.target.value,
+					});
+				}}
+			/>
 		</div>
 
 		<!-- Plus buttons (show only when selected) -->
@@ -98,9 +78,13 @@
 </ComponentBox>
 
 <style>
+	input {
+		text-align: center;
+	}
+
 	.binary-node-container {
-		width: 80px;
-		height: 40px;
+		/* width: 80px;
+		height: 40px; */
 		position: relative;
 	}
 
@@ -113,19 +97,12 @@
 		position: relative;
 	}
 
-	.node-value {
-		font-size: 14px;
-		color: #333;
-		cursor: text;
-	}
-
 	.node-input {
-		width: 60px;
+		width: 4em;
 		border: none;
 		background: transparent;
 		font-size: 14px;
 		outline: none;
-		text-align: center;
 	}
 
 	/* Plus button styling */

@@ -1529,7 +1529,7 @@
 						value={comp.value}
 						name={comp.name || "Pointer"}
 						on:nodeMouseDown={handleNodeMouseDown}
-						on:nameChange={handleComponentNameChange}
+						on:propertyChange={(e) => handlePropertyChange(e.detail)}
 						{hoveredNode}
 						on:move={handleComponentMove}
 						on:redraw={() => {}}
@@ -1597,6 +1597,7 @@
 						value={comp.value}
 						selected={selectedComponentIds.includes(comp.id)}
 						on:nodeMouseDown={handleNodeMouseDown}
+						on:propertyChange={(e) => handlePropertyChange(e.detail)}
 						on:createConnectedNode={handleCreateConnectedNode}
 						on:move={handleComponentMove}
 						on:delete={(e) => handleComponentDelete(e.detail.id)}
@@ -1617,6 +1618,7 @@
 						value={comp.value}
 						childCount={comp.childCount || 3}
 						selected={selectedComponentIds.includes(comp.id)}
+						on:propertyChange={(e) => handlePropertyChange(e.detail)}
 						on:nodeMouseDown={handleNodeMouseDown}
 						on:createConnectedNode={handleCreateConnectedNode}
 						on:move={handleComponentMove}

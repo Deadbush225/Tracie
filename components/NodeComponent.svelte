@@ -115,9 +115,11 @@
 </ComponentBox>
 
 <style>
+	input {
+		text-align: center;
+	}
+
 	.node-container {
-		width: 120px;
-		height: 40px;
 		position: relative;
 	}
 
@@ -138,7 +140,7 @@
 	}
 
 	.node-input {
-		width: 60px;
+		width: 4em;
 		border: none;
 		background: transparent;
 		font-size: 14px;

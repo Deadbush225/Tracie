@@ -511,7 +511,7 @@ export function addPointerComponent() {
 		type: "pointer",
 		x: 100,
 		y: 100,
-		value: name,
+		name,
 	};
 
 	executeCommand(new AddComponentCommand(component));
@@ -531,7 +531,7 @@ export function addIteratorComponent() {
 		type: "iterator",
 		x: 100,
 		y: 100,
-		value: name,
+		name,
 		linkedArrays: [],
 		maxIndex: 10,
 		color: generateColor(nextId),

@@ -61,20 +61,7 @@
 	<div class="nary-node-container">
 		<!-- The n-ary node -->
 		<div class="nary-node">
-			<!-- Main content -->
-			{#if editing}
-				<input
-					id={"nary-node-edit-" + id}
-					{value}
-					on:input={handleInput}
-					on:blur={handleBlur}
-					class="node-input"
-				/>
-			{:else}
-				<span class="node-value" on:dblclick={handleDblClick}>
-					{value || "Value"}
-				</span>
-			{/if}
+			<input id={"nary-node-edit-" + id} bind:value class="node-input" />
 		</div>
 
 		<!-- Plus buttons (show only when selected) -->
@@ -100,9 +87,11 @@
 </ComponentBox>
 
 <style>
+	input {
+		text-align: center;
+	}
+
 	.nary-node-container {
-		width: 100px;
-		height: 40px;
 		position: relative;
 	}
 
@@ -115,14 +104,8 @@
 		position: relative;
 	}
 
-	.node-value {
-		font-size: 14px;
-		color: #333;
-		cursor: text;
-	}
-
 	.node-input {
-		width: 80px;
+		width: 4em;
 		border: none;
 		background: transparent;
 		font-size: 14px;

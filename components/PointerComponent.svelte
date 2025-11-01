@@ -35,7 +35,8 @@
 			bind:value={name}
 			placeholder="Pointer"
 			class="pointer-name"
-			on:input={() => dispatch("nameChange", { id, name })}
+			on:input={() =>
+				dispatch("propertyChange", { id, property: "name", value: name })}
 			on:click|stopPropagation
 		/>
 	</div>
