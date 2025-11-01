@@ -38,6 +38,17 @@
 	import { onMount, setContext, tick } from "svelte";
 	import { updateSvgRect2, svgRect } from "./ui_store";
 	import { writable } from "svelte/store";
+	import FileBrowser from "../components/FileBrowser.svelte";
+	import { user, authLoading, signInWithGoogle, signOutUser } from "./firebase";
+	import {
+		currentFilename,
+		isSaved,
+		showFileBrowser,
+		saveCurrentFile,
+		createNewFile,
+		exportAsImage,
+		refreshFileList,
+	} from "./fileManager";
 
 	let linkingFrom = null;
 	let draggingLink = null;
@@ -800,6 +811,42 @@
 				activeElement.tagName === "TEXTAREA" ||
 				(activeElement as HTMLElement).contentEditable === "true");
 
+		// File operations
+		// New file with Ctrl+N
+		if (event.ctrlKey && event.key === "n") {
+			if (isTyping) return;
+			event.preventDefault();
+			createNewFile();
+		}
+
+		// Save with Ctrl+S
+		if (event.ctrlKey && event.key === "s") {
+			if (isTyping) return;
+			event.preventDefault();
+
+			if (!$user) {
+				alert("Please sign in to save files");
+				return;
+			}
+
+			const filename = prompt("Enter filename:", $currentFilename);
+			if (filename) {
+				saveCurrentFile($user.uid, filename)
+					.then(() => alert("File saved successfully!"))
+					.catch((err) => alert("Error saving file: " + err.message));
+			}
+		}
+
+		// Export with Ctrl+E
+		if (event.ctrlKey && event.key === "e") {
+			if (isTyping) return;
+			event.preventDefault();
+
+			exportAsImage(svgContainer, $currentFilename).catch((err) =>
+				alert("Error exporting image: " + err.message)
+			);
+		}
+
 		// Reset view with Ctrl+0
 		if (event.ctrlKey && event.key === "0") {
 			event.preventDefault();
@@ -1239,6 +1286,80 @@
 
 <!-- Menu Bar -->
 <div class="menubar">
+	<!-- File Menu -->
+	<div class="menu-item">
+		<button
+			class="menu-button"
+			on:click={() => (openDropdown = openDropdown === "file" ? null : "file")}
+		>
+			File ▾
+		</button>
+		{#if openDropdown === "file"}
+			<div class="dropdown">
+				<button
+					class="dropdown-item"
+					on:click={() => {
+						createNewFile();
+						openDropdown = null;
+					}}
+				>
+					<span class="shortcut">Ctrl+N</span> New
+				</button>
+				<button
+					class="dropdown-item"
+					on:click={async () => {
+						if (!$user) {
+							alert("Please sign in to open files");
+							return;
+						}
+						await refreshFileList($user.uid);
+						showFileBrowser.set(true);
+						openDropdown = null;
+					}}
+					disabled={!$user}
+				>
+					<span class="shortcut">Ctrl+O</span> Open...
+				</button>
+				<button
+					class="dropdown-item"
+					on:click={async () => {
+						if (!$user) {
+							alert("Please sign in to save files");
+							return;
+						}
+						const filename = prompt("Enter filename:", $currentFilename);
+						if (filename) {
+							try {
+								await saveCurrentFile($user.uid, filename);
+								alert("File saved successfully!");
+							} catch (err) {
+								alert("Error saving file: " + err.message);
+							}
+						}
+						openDropdown = null;
+					}}
+					disabled={!$user}
+				>
+					<span class="shortcut">Ctrl+S</span> Save As...
+				</button>
+				<div class="dropdown-divider"></div>
+				<button
+					class="dropdown-item"
+					on:click={async () => {
+						try {
+							await exportAsImage(svgContainer, $currentFilename);
+						} catch (err) {
+							alert("Error exporting image: " + err.message);
+						}
+						openDropdown = null;
+					}}
+				>
+					<span class="shortcut">Ctrl+E</span> Export as Image
+				</button>
+			</div>
+		{/if}
+	</div>
+
 	<!-- Components Menu -->
 	<div class="menu-item">
 		<button
@@ -1420,7 +1541,30 @@
 			</div>
 		{/if}
 	</div>
+
+	<!-- Right side: Filename and Auth -->
+	<div class="menubar-right">
+		<div class="filename-display">
+			{$currentFilename}{#if !$isSaved}*{/if}
+		</div>
+
+		{#if $authLoading}
+			<div class="auth-loading">...</div>
+		{:else if $user}
+			<div class="user-info">
+				<img src={$user.photoURL} alt="User" class="user-avatar" />
+				<span class="user-name">{$user.displayName}</span>
+				<button class="btn-signout" on:click={signOutUser}>Sign Out</button>
+			</div>
+		{:else}
+			<button class="btn-signin" on:click={signInWithGoogle}>
+				Sign In with Google
+			</button>
+		{/if}
+	</div>
 </div>
+
+<FileBrowser />
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <div
@@ -1766,6 +1910,7 @@
 <style>
 	.menubar {
 		display: flex;
+		align-items: center;
 		position: fixed;
 		top: 0;
 		left: 0;
@@ -1777,6 +1922,79 @@
 		padding: 0;
 		height: 40px;
 		user-select: none;
+	}
+
+	.menubar-right {
+		margin-left: auto;
+		display: flex;
+		align-items: center;
+		gap: 16px;
+		padding-right: 16px;
+	}
+
+	.filename-display {
+		font-size: 14px;
+		font-weight: 500;
+		color: #555;
+		padding: 4px 12px;
+		background: rgba(255, 255, 255, 0.5);
+		border-radius: 4px;
+	}
+
+	.auth-loading {
+		font-size: 14px;
+		color: #999;
+	}
+
+	.user-info {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.user-avatar {
+		width: 28px;
+		height: 28px;
+		border-radius: 50%;
+		border: 2px solid #ddd;
+	}
+
+	.user-name {
+		font-size: 14px;
+		color: #333;
+		max-width: 150px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.btn-signin,
+	.btn-signout {
+		padding: 6px 12px;
+		border: none;
+		border-radius: 4px;
+		cursor: pointer;
+		font-size: 13px;
+		font-weight: 500;
+		transition: all 0.2s;
+	}
+
+	.btn-signin {
+		background: #4285f4;
+		color: white;
+	}
+
+	.btn-signin:hover {
+		background: #357ae8;
+	}
+
+	.btn-signout {
+		background: #e0e0e0;
+		color: #333;
+	}
+
+	.btn-signout:hover {
+		background: #d0d0d0;
 	}
 
 	.menu-item {

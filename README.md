@@ -2,13 +2,46 @@
 
 Tracie is an interactive whiteboard tool designed to help visualize data structures and algorithms. It allows you to create, manipulate, and connect various data structure components to trace through algorithms step-by-step.
 
+## ✨ New: Cloud Storage & Authentication
+
+Tracie now features Firebase integration for cloud-based file management:
+
+- 🔐 **Google Authentication** - Sign in with your Google account
+- ☁️ **Cloud Storage** - Save and access your diagrams from anywhere
+- 📁 **File Management** - Browse, open, and delete your saved files
+- 🖼️ **Image Export** - Export your diagrams as high-quality PNG images
+- 💾 **Auto-save Indicator** - Never lose your work
+
+👉 **Quick Start**: See `QUICK_START.md` for 5-minute setup  
+📖 **Full Setup**: See `FIREBASE_SETUP.md` for detailed instructions
+
 ## Features
+
+### Core Features
 
 - Create and manipulate array, 2D table, and pointer components
 - Connect components with links to show relationships and references
 - Select and move multiple components together
 - Full undo/redo functionality
 - Intuitive drag-and-drop interface
+- Infinite canvas with pan and zoom
+
+### Data Structure Components
+
+- Arrays with indexed cells
+- 2D Tables/Matrices
+- Pointers and variables
+- Iterators with navigation
+- Linked list nodes
+- Binary tree nodes
+- N-ary tree nodes
+
+### File Management (New!)
+
+- Save diagrams to your personal cloud storage
+- Open previously saved files
+- Export diagrams as PNG images
+- Filename display with unsaved changes indicator
 
 ## Live Preview
 
