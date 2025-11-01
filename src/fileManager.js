@@ -5,7 +5,7 @@ import { toPng } from "html-to-image";
 import { writable } from "svelte/store";
 
 // Current file state
-export const currentFilename = writable("Untitled");
+export const currentFilename = writable("");
 export const isSaved = writable(true);
 export const showFileBrowser = writable(false);
 export const fileList = writable([]);

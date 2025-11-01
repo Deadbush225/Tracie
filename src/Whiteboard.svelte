@@ -1299,6 +1299,15 @@
 				<button
 					class="dropdown-item"
 					on:click={() => {
+						if (!$isSaved) {
+							const confirmNew = confirm(
+								"You have unsaved changes. Are you sure you want to create a new file and lose these changes?"
+							);
+							if (!confirmNew) {
+								openDropdown = null;
+								return;
+							}
+						}
 						createNewFile();
 						openDropdown = null;
 					}}
@@ -1360,187 +1369,196 @@
 		{/if}
 	</div>
 
-	<!-- Components Menu -->
-	<div class="menu-item">
-		<button
-			class="menu-button"
-			on:click={() =>
-				(openDropdown = openDropdown === "components" ? null : "components")}
-		>
-			Components ▾
-		</button>
-		{#if openDropdown === "components"}
-			<div class="dropdown">
-				<div class="dropdown-section">
-					<div class="dropdown-label">Basic Components</div>
+	{#if $currentFilename}
+		<!-- Components Menu -->
+		<div class="menu-item">
+			<button
+				class="menu-button"
+				on:click={() =>
+					(openDropdown = openDropdown === "components" ? null : "components")}
+			>
+				Components ▾
+			</button>
+			{#if openDropdown === "components"}
+				<div class="dropdown">
+					<div class="dropdown-section">
+						<div class="dropdown-label">Basic Components</div>
+						<button
+							class="dropdown-item"
+							on:click={() => {
+								addArrayComponent();
+								openDropdown = null;
+							}}
+						>
+							Array
+						</button>
+						<button
+							class="dropdown-item"
+							on:click={() => {
+								add2DTableComponent();
+								openDropdown = null;
+							}}
+						>
+							2D Table
+						</button>
+						<button
+							class="dropdown-item"
+							on:click={() => {
+								addPointerComponent();
+								openDropdown = null;
+							}}
+						>
+							Pointer
+						</button>
+						<button
+							class="dropdown-item"
+							on:click={() => {
+								addIteratorComponent();
+								openDropdown = null;
+							}}
+						>
+							Iterator
+						</button>
+					</div>
+					<div class="dropdown-divider"></div>
+					<div class="dropdown-section">
+						<div class="dropdown-label">Tree Nodes</div>
+						<button
+							class="dropdown-item"
+							on:click={() => {
+								addNodeComponent();
+								openDropdown = null;
+							}}
+						>
+							Simple Node
+						</button>
+						<button
+							class="dropdown-item"
+							on:click={() => {
+								addBinaryNodeComponent();
+								openDropdown = null;
+							}}
+						>
+							Binary Node
+						</button>
+						<button
+							class="dropdown-item"
+							on:click={() => {
+								addNaryNodeComponent();
+								openDropdown = null;
+							}}
+						>
+							N-ary Node
+						</button>
+					</div>
+				</div>
+			{/if}
+		</div>
+
+		<!-- Edit Menu -->
+		<div class="menu-item">
+			<button
+				class="menu-button"
+				disabled={!$currentFilename}
+				title={!$currentFilename
+					? "Open a file to enable edit actions"
+					: "Edit menu"}
+				on:click={() => {
+					if (!$currentFilename) return;
+					openDropdown = openDropdown === "edit" ? null : "edit";
+				}}
+			>
+				Edit ▾
+			</button>
+			{#if openDropdown === "edit"}
+				<div class="dropdown">
 					<button
 						class="dropdown-item"
 						on:click={() => {
-							addArrayComponent();
+							undo();
 							openDropdown = null;
 						}}
+						disabled={!$currentFilename || !canUndo}
 					>
-						Array
+						<span class="shortcut">Ctrl+Z</span> Undo
 					</button>
 					<button
 						class="dropdown-item"
 						on:click={() => {
-							add2DTableComponent();
+							redo();
 							openDropdown = null;
 						}}
+						disabled={!$currentFilename || !canRedo}
 					>
-						2D Table
+						<span class="shortcut">Ctrl+Y</span> Redo
 					</button>
+					<div class="dropdown-divider"></div>
 					<button
 						class="dropdown-item"
 						on:click={() => {
-							addPointerComponent();
+							deleteSelectedLinks();
 							openDropdown = null;
 						}}
+						disabled={!$currentFilename ||
+							(selectedLinks.length === 0 && selectedComponentIds.length === 0)}
 					>
-						Pointer
-					</button>
-					<button
-						class="dropdown-item"
-						on:click={() => {
-							addIteratorComponent();
-							openDropdown = null;
-						}}
-					>
-						Iterator
+						<span class="shortcut">Del</span> Delete Selected
 					</button>
 				</div>
-				<div class="dropdown-divider"></div>
-				<div class="dropdown-section">
-					<div class="dropdown-label">Tree Nodes</div>
+			{/if}
+		</div>
+
+		<!-- Tools Menu -->
+		<div class="menu-item">
+			<button
+				class="menu-button"
+				on:click={() =>
+					(openDropdown = openDropdown === "tools" ? null : "tools")}
+			>
+				Tools ▾
+			</button>
+			{#if openDropdown === "tools"}
+				<div class="dropdown">
 					<button
 						class="dropdown-item"
 						on:click={() => {
-							addNodeComponent();
+							if (selectedLinks.length > 0) {
+								selectedLinks.forEach((link) => optimizeLinkPath(link));
+							} else {
+								optimizeAllLinks();
+							}
 							openDropdown = null;
 						}}
 					>
-						Simple Node
+						<span class="shortcut">Ctrl+O</span>
+						{selectedLinks.length > 0
+							? "Optimize Selected Links"
+							: "Optimize All Links"}
 					</button>
 					<button
 						class="dropdown-item"
 						on:click={() => {
-							addBinaryNodeComponent();
+							if (selectedComponentIds.length > 0) {
+								selectedComponentIds.forEach((nodeId) => {
+									const node = $components.find((c) => c.id === nodeId);
+									if (
+										node &&
+										(node.type === "binary-node" || node.type === "nary-node")
+									) {
+										autoLayoutTree(nodeId);
+									}
+								});
+							}
 							openDropdown = null;
 						}}
+						disabled={selectedComponentIds.length === 0}
 					>
-						Binary Node
-					</button>
-					<button
-						class="dropdown-item"
-						on:click={() => {
-							addNaryNodeComponent();
-							openDropdown = null;
-						}}
-					>
-						N-ary Node
+						<span class="shortcut">Ctrl+L</span> Auto-Layout Tree
 					</button>
 				</div>
-			</div>
-		{/if}
-	</div>
-
-	<!-- Edit Menu -->
-	<div class="menu-item">
-		<button
-			class="menu-button"
-			on:click={() => (openDropdown = openDropdown === "edit" ? null : "edit")}
-		>
-			Edit ▾
-		</button>
-		{#if openDropdown === "edit"}
-			<div class="dropdown">
-				<button
-					class="dropdown-item"
-					on:click={() => {
-						undo();
-						openDropdown = null;
-					}}
-					disabled={!canUndo}
-				>
-					<span class="shortcut">Ctrl+Z</span> Undo
-				</button>
-				<button
-					class="dropdown-item"
-					on:click={() => {
-						redo();
-						openDropdown = null;
-					}}
-					disabled={!canRedo}
-				>
-					<span class="shortcut">Ctrl+Y</span> Redo
-				</button>
-				<div class="dropdown-divider"></div>
-				<button
-					class="dropdown-item"
-					on:click={() => {
-						deleteSelectedLinks();
-						openDropdown = null;
-					}}
-					disabled={selectedLinks.length === 0 &&
-						selectedComponentIds.length === 0}
-				>
-					<span class="shortcut">Del</span> Delete Selected
-				</button>
-			</div>
-		{/if}
-	</div>
-
-	<!-- Tools Menu -->
-	<div class="menu-item">
-		<button
-			class="menu-button"
-			on:click={() =>
-				(openDropdown = openDropdown === "tools" ? null : "tools")}
-		>
-			Tools ▾
-		</button>
-		{#if openDropdown === "tools"}
-			<div class="dropdown">
-				<button
-					class="dropdown-item"
-					on:click={() => {
-						if (selectedLinks.length > 0) {
-							selectedLinks.forEach((link) => optimizeLinkPath(link));
-						} else {
-							optimizeAllLinks();
-						}
-						openDropdown = null;
-					}}
-				>
-					<span class="shortcut">Ctrl+O</span>
-					{selectedLinks.length > 0
-						? "Optimize Selected Links"
-						: "Optimize All Links"}
-				</button>
-				<button
-					class="dropdown-item"
-					on:click={() => {
-						if (selectedComponentIds.length > 0) {
-							selectedComponentIds.forEach((nodeId) => {
-								const node = $components.find((c) => c.id === nodeId);
-								if (
-									node &&
-									(node.type === "binary-node" || node.type === "nary-node")
-								) {
-									autoLayoutTree(nodeId);
-								}
-							});
-						}
-						openDropdown = null;
-					}}
-					disabled={selectedComponentIds.length === 0}
-				>
-					<span class="shortcut">Ctrl+L</span> Auto-Layout Tree
-				</button>
-			</div>
-		{/if}
-	</div>
+			{/if}
+		</div>
+	{/if}
 
 	<!-- Right side: Filename and Auth -->
 	<div class="menubar-right">
