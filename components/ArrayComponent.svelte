@@ -52,12 +52,6 @@
 		} else {
 			data = data.slice(0, length);
 		}
-
-		dispatch("propertyChange", {
-			id,
-			property: "data",
-			value: data,
-		});
 	}
 
 	// Row drag state
@@ -167,6 +161,9 @@
 	on:move={(e) => dispatch("move", e.detail)}
 	on:nodeMouseDown={(e) => dispatch("nodeMouseDown", e.detail)}
 	on:delete={(e) => dispatch("delete", e.detail)}
+	on:changed={(e) => {
+		dispatch("propertyChange", { id, property: "data", value: data });
+	}}
 >
 	<!-- Table -->
 	<table style="border-collapse:collapse;">
@@ -193,7 +190,13 @@
 							highlightsByIterator[i]
 						)};"
 					>
-						<input style="width:40px;" bind:value={data[i]} />
+						<input
+							style="width:40px;"
+							bind:value={data[i]}
+							on:change={(e) => {
+								dispatch("changed");
+							}}
+						/>
 					</td>
 				{/each}
 			</tr>

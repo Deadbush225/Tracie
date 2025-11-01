@@ -26,6 +26,7 @@ if (typeof window !== "undefined") {
 					x: c.x,
 					y: c.y,
 					name: c.name || c.value || "",
+					data: c.data || "",
 				}))
 			);
 		} catch (err) {

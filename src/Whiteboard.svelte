@@ -1488,6 +1488,7 @@
 						y={comp.y}
 						length={comp.length}
 						on:nodeMouseDown={handleNodeMouseDown}
+						on:propertyChange={(e) => handlePropertyChange(e.detail)}
 						on:indexUpdate={handleIteratorIndexUpdate}
 						on:move={handleComponentMove}
 						on:redraw={() => {}}
@@ -1509,6 +1510,7 @@
 						rows={comp.rows}
 						cols={comp.cols}
 						on:nodeMouseDown={handleNodeMouseDown}
+						on:propertyChange={(e) => handlePropertyChange(e.detail)}
 						on:move={handleComponentMove}
 						on:redraw={() => {}}
 						on:delete={(e) => handleComponentDelete(e.detail.id)}

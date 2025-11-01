@@ -333,7 +333,17 @@
 							on:mouseup={(e) => handleCellMouseUp(r, c, e)}
 							on:contextmenu={handleCellContextMenu}
 						>
-							<input style="width:40px;" bind:value={data[r][c]} />
+							<input
+								style="width:40px;"
+								bind:value={data[r][c]}
+								on:change={(e) => {
+									dispatch("propertyChange", {
+										id,
+										property: "data",
+										value: data,
+									});
+								}}
+							/>
 						</td>
 					{/each}
 				</tr>
