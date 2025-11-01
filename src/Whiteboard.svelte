@@ -1007,28 +1007,34 @@
 	// Selection box visualizer (add it to the relative position container)
 	$: {
 		$components;
-		$svgRect; // Add dependency on svgRect to update on scroll
 		console.log("Creating selection visualizer");
 
 		const selectionOverlay = document.querySelector(".group-selection-box");
 
 		if (selectedComponentIds.length > 0) {
-			// Find bounding box of all selected components
+			// Find bounding box of all selected components in canvas space
 			let minX = Infinity;
 			let minY = Infinity;
 			let maxX = -Infinity;
 			let maxY = -Infinity;
 
 			selectedComponentIds.forEach((id) => {
-				const box = getComponentBox(id);
-				if (box) {
-					minX = Math.min(minX, box.left) - 3;
-					minY = Math.min(minY, box.top) - 3;
-					maxX = Math.max(maxX, box.right) + 4;
-					maxY = Math.max(maxY, box.bottom) + 4;
+				const comp = $components.find((c) => c.id === id);
+				if (comp) {
+					const el = document.getElementById(`comp-${id}`);
+					const width = el ? el.offsetWidth : 100;
+					const height = el ? el.offsetHeight : 60;
+
+					minX = Math.min(minX, comp.x) - 3;
+					minY = Math.min(minY, comp.y) - 3;
+					maxX = Math.max(maxX, comp.x + width) + 4;
+					maxY = Math.max(maxY, comp.y + height) + 4;
 				}
 			});
+
 			if (selectionOverlay) {
+				// Since selection overlay is inside the transformed div,
+				// use canvas coordinates directly (component x, y positions)
 				selectionOverlay.style.left = `${minX}px`;
 				selectionOverlay.style.top = `${minY}px`;
 				selectionOverlay.style.width = `${maxX - minX}px`;
@@ -1735,6 +1741,7 @@
 	<!-- Zoom and pan controls indicator -->
 	<div class="canvas-info">
 		<div>Zoom: {(zoom * 100).toFixed(0)}%</div>
+		<div>Pan: X: {panX}px, Y: {panY}px</div>
 		<div style="font-size: 11px; color: #666; margin-top: 4px;">
 			Scroll: Pan | Ctrl+Scroll: Zoom | Middle Click: Pan | Ctrl+0: Reset
 		</div>
