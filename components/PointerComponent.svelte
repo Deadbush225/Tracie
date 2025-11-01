@@ -92,43 +92,43 @@
 		};
 	});
 
-	function getNodeCenter(side) {
-		// Use the component's current position (pos.x, pos.y) instead of rect + scroll
-		const width = rect.width;
-		const height = rect.height;
+	// function getNodeCenter(side) {
+	// 	// Use the component's current position (pos.x, pos.y) instead of rect + scroll
+	// 	const width = rect.width;
+	// 	const height = rect.height;
 
-		// Component positions are relative to the container, same as SVG
-		switch (side) {
-			case "top":
-				return {
-					x: pos.x + width / 2,
-					y: pos.y - 6,
-				};
-			case "bottom":
-				return {
-					x: pos.x + width / 2,
-					y: pos.y + height + 6,
-				};
-			case "left":
-				return {
-					x: pos.x - 6,
-					y: pos.y + height / 2,
-				};
-			case "right":
-				return {
-					x: pos.x + width + 6,
-					y: pos.y + height / 2,
-				};
-		}
-	}
+	// 	// Component positions are relative to the container, same as SVG
+	// 	switch (side) {
+	// 		case "top":
+	// 			return {
+	// 				x: pos.x + width / 2,
+	// 				y: pos.y - 6,
+	// 			};
+	// 		case "bottom":
+	// 			return {
+	// 				x: pos.x + width / 2,
+	// 				y: pos.y + height + 6,
+	// 			};
+	// 		case "left":
+	// 			return {
+	// 				x: pos.x - 6,
+	// 				y: pos.y + height / 2,
+	// 			};
+	// 		case "right":
+	// 			return {
+	// 				x: pos.x + width + 6,
+	// 				y: pos.y + height / 2,
+	// 			};
+	// 	}
+	// }
 
-	function registerNode(side) {
-		if (!window.__getNodeCenterMap) window.__getNodeCenterMap = {};
-		window.__getNodeCenterMap[`${id}-${side}`] = () => getNodeCenter(side);
-	}
-	onMount(() => {
-		["top", "bottom", "left", "right"].forEach(registerNode);
-	});
+	// function registerNode(side) {
+	// 	if (!window.__getNodeCenterMap) window.__getNodeCenterMap = {};
+	// 	window.__getNodeCenterMap[`${id}-${side}`] = () => getNodeCenter(side);
+	// }
+	// onMount(() => {
+	// 	["top", "bottom", "left", "right"].forEach(registerNode);
+	// });
 </script>
 
 <ComponentBox
