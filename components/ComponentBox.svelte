@@ -1,4 +1,24 @@
 <script>
+	/**
+	 * ComponentBox - Reusable wrapper for all components with connection points
+	 *
+	 * This component encapsulates:
+	 * - Component positioning and dragging
+	 * - Connection point management and registration
+	 * - Delete button
+	 * - Custom styling (border, radius, etc.)
+	 *
+	 * Usage in child components:
+	 * 1. Define connectionPoints array (e.g., ["top", "bottom", "left", "right"])
+	 * 2. Pass connectionPoints prop to ComponentBox
+	 * 3. ComponentBox handles all connection logic automatically
+	 * 4. Child component just needs to dispatch events (move, nodeMouseDown, delete)
+	 *
+	 * Available connection points:
+	 * - Basic: "top", "bottom", "left", "right"
+	 * - Binary tree: "bottom-left", "bottom-right"
+	 * - Diagonal: "top-left", "top-right"
+	 */
 	import { createEventDispatcher, onMount } from "svelte";
 	import { get } from "svelte/store";
 	import { svgRect } from "../src/ui_store";
@@ -8,11 +28,11 @@
 	export let class_ = "";
 	export let hoveredNode = null;
 	export let deletable = true;
-	// New prop: array of connection point names (e.g., ["top", "bottom-left", "bottom-right"])
+	// Array of connection point names (e.g., ["top", "bottom-left", "bottom-right"])
 	export let connectionPoints = ["top", "bottom", "left", "right"];
-	// New prop: border radius for shape customization (default 6px for backwards compatibility)
+	// Border radius for shape customization (default 6px for backwards compatibility)
 	export let borderRadius = "6px";
-	// New prop: border color (default #333)
+	// Border color (default #333)
 	export let borderColor = "#333";
 
 	// Constants for connection point positioning

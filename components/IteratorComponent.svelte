@@ -1,5 +1,6 @@
 <script>
-	import { svgRect } from "../src/ui_store";
+	import { createEventDispatcher, onMount } from "svelte";
+	import ComponentBox from "./ComponentBox.svelte";
 
 	export let id;
 	export let x;
@@ -12,22 +13,10 @@
 	export let name = "Iterator"; // Display name for the iterator
 	export let selected = false; // Whether this iterator is selected
 
-	import { deleteComponent, updateLinkEndpoints } from "../src/Whiteboard_back";
-	import { createEventDispatcher, onMount } from "svelte";
-	import ComponentBox from "./ComponentBox.svelte";
 	const dispatch = createEventDispatcher();
-	let container;
 
-	// Make pos reactive to x and y props
-	$: pos = { x, y };
-	let dragging = false;
-	let offset = { x: 0, y: 0 };
-
-	// Track total movement for history
-	let startPos = { x: 0, y: 0 };
-	let totalDx = 0;
-	let totalDy = 0;
-	let rect;
+	// Define connection points - iterators typically connect from bottom to arrays
+	const connectionPoints = ["bottom"];
 
 	// Iterator state
 	let currentIndex = 0;
@@ -115,6 +104,8 @@
 	{x}
 	{y}
 	{class_}
+	{connectionPoints}
+	{hoveredNode}
 	on:move={(e) => dispatch("move", e.detail)}
 	on:nodeMouseDown={(e) => dispatch("nodeMouseDown", e.detail)}
 	on:delete={(e) => dispatch("delete", e.detail)}
