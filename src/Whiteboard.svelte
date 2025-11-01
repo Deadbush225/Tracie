@@ -1048,11 +1048,33 @@
 
 	function handleSelectionStart(event) {
 		// Only start selection box if not clicking on a component and not panning
-		if (event.target === svgContainer && !isPanning && event.button === 0) {
+		// Check if clicking on background (not on a component)
+		const isBackground =
+			!event.target.closest('[id^="comp-"]') &&
+			!event.target.closest(".component-placeholder") &&
+			event.button === 0 &&
+			!isPanning;
+
+		if (isBackground) {
+			// Get container rect for accurate positioning
+			const containerRect = svgContainer.getBoundingClientRect();
+
 			// Convert screen coordinates to canvas coordinates
-			const canvasX = (event.clientX - $svgRect.left - panX) / zoom;
-			const canvasY = (event.clientY - $svgRect.top - panY) / zoom;
-			
+			// Transform: translate(panX, panY) scale(zoom)
+			// So: screen = canvas * zoom + pan
+			// Therefore: canvas = (screen - pan) / zoom
+			const screenX = event.clientX - containerRect.left;
+			const screenY = event.clientY - containerRect.top;
+			const canvasX = (screenX - panX) / zoom;
+			const canvasY = (screenY - panY) / zoom;
+
+			console.log("=== SELECTION START ===");
+			console.log(`Screen: (${screenX.toFixed(1)}, ${screenY.toFixed(1)})`);
+			console.log(
+				`Pan: (${panX.toFixed(1)}, ${panY.toFixed(1)}), Zoom: ${zoom.toFixed(2)}`
+			);
+			console.log(`Canvas: (${canvasX.toFixed(1)}, ${canvasY.toFixed(1)})`);
+
 			selectionStartPos = {
 				x: canvasX,
 				y: canvasY,
@@ -1071,9 +1093,14 @@
 
 	function handleSelectionMove(event) {
 		if (selectionStartPos) {
+			// Get container rect for accurate positioning
+			const containerRect = svgContainer.getBoundingClientRect();
+
 			// Update selection box dimensions
-			const canvasX = (event.clientX - $svgRect.left - panX) / zoom;
-			const canvasY = (event.clientY - $svgRect.top - panY) / zoom;
+			const screenX = event.clientX - containerRect.left;
+			const screenY = event.clientY - containerRect.top;
+			const canvasX = (screenX - panX) / zoom;
+			const canvasY = (screenY - panY) / zoom;
 
 			selectionBox = {
 				x: Math.min(selectionStartPos.x, canvasX),
@@ -1145,23 +1172,23 @@
 	// Pan and zoom handlers
 	function handleWheel(event) {
 		event.preventDefault();
-		
+
 		if (event.ctrlKey) {
 			// Zoom with Ctrl+Wheel
 			const zoomFactor = event.deltaY > 0 ? 0.9 : 1.1;
 			const newZoom = Math.max(0.1, Math.min(3, zoom * zoomFactor));
-			
+
 			// Zoom towards mouse position
 			const mouseX = event.clientX;
 			const mouseY = event.clientY - 40; // Account for menubar
-			
+
 			// Adjust pan to zoom towards mouse
 			const dx = mouseX - panX;
 			const dy = mouseY - panY;
-			
+
 			panX = mouseX - dx * (newZoom / zoom);
 			panY = mouseY - dy * (newZoom / zoom);
-			
+
 			zoom = newZoom;
 		} else {
 			// Pan with wheel
@@ -1403,294 +1430,308 @@
 	on:keydown={() => {}}
 >
 	<!-- Grid background pattern -->
-	<svg style="position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none;">
+	<svg
+		style="position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none;"
+	>
 		<defs>
-			<pattern id="grid" width="{20 * zoom}" height="{20 * zoom}" patternUnits="userSpaceOnUse">
-				<rect width="{20 * zoom}" height="{20 * zoom}" fill="none"/>
-				<path d="M {20 * zoom} 0 L 0 0 0 {20 * zoom}" fill="none" stroke="#e0e0e0" stroke-width="0.5"/>
+			<pattern
+				id="grid"
+				width={20 * zoom}
+				height={20 * zoom}
+				patternUnits="userSpaceOnUse"
+			>
+				<rect width={20 * zoom} height={20 * zoom} fill="none" />
+				<path
+					d="M {20 * zoom} 0 L 0 0 0 {20 * zoom}"
+					fill="none"
+					stroke="#e0e0e0"
+					stroke-width="0.5"
+				/>
 			</pattern>
 		</defs>
-		<rect width="100%" height="100%" fill="url(#grid)" style="transform: translate({panX % (20 * zoom)}px, {panY % (20 * zoom)}px);"/>
+		<rect width="100%" height="100%" fill="url(#grid)" />
 	</svg>
 
 	<!-- Canvas content with pan and zoom transform -->
-	<div style="transform: translate({panX}px, {panY}px) scale({zoom}); transform-origin: 0 0; width: 5000px; height: 5000px; position:relative;">
-	{#each comps as comp (comp.id)}
-		{#if comp.type === "array"}
-			<!-- Wrap ArrayComponent so we can handle clicks but not interfere with component's own dragging -->
-			<div
-				class="component-placeholder"
-				on:mousedown={(e) => handleComponentClick(comp, e)}
-				role="button"
-				tabindex="0"
-				on:keydown={() => {}}
-			>
-				<ArrayComponent
-					id={comp.id}
-					x={comp.x}
-					y={comp.y}
-					length={comp.length}
-					on:nodeMouseDown={handleNodeMouseDown}
-					on:indexUpdate={handleIteratorIndexUpdate}
-					on:move={handleComponentMove}
-					on:redraw={() => {}}
-					on:delete={(e) => handleComponentDelete(e.detail.id)}
-				/>
-			</div>
-		{:else if comp.type === "2darray"}
-			<div
-				class="component-placeholder"
-				on:mousedown={(e) => handleComponentClick(comp, e)}
-				role="button"
-				tabindex="0"
-				on:keydown={() => {}}
-			>
-				<Table2DComponent
-					id={comp.id}
-					x={comp.x}
-					y={comp.y}
-					rows={comp.rows}
-					cols={comp.cols}
-					on:nodeMouseDown={handleNodeMouseDown}
-					on:move={handleComponentMove}
-					on:redraw={() => {}}
-					on:delete={(e) => handleComponentDelete(e.detail.id)}
-				/>
-			</div>
-		{:else if comp.type === "pointer"}
-			<div
-				class="component-placeholder"
-				on:mousedown={(e) => handleComponentClick(comp, e)}
-				role="button"
-				tabindex="0"
-				on:keydown={() => {}}
-			>
-				<PointerComponent
-					id={comp.id}
-					x={comp.x}
-					y={comp.y}
-					value={comp.value}
-					name={comp.name || "Pointer"}
-					on:nodeMouseDown={handleNodeMouseDown}
-					on:nameChange={handleComponentNameChange}
-					{hoveredNode}
-					on:move={handleComponentMove}
-					on:redraw={() => {}}
-					on:delete={(e) => handleComponentDelete(e.detail.id)}
-				/>
-			</div>
-		{:else if comp.type === "iterator"}
-			<div
-				class="component-placeholder"
-				on:mousedown={(e) => handleComponentClick(comp, e)}
-				role="button"
-				tabindex="0"
-				on:keydown={() => {}}
-			>
-				<IteratorComponent
-					id={comp.id}
-					x={comp.x}
-					y={comp.y}
-					linkedArrays={comp.linkedArrays || []}
-					name={comp.name || "Iterator"}
-					selected={selectedComponentIds.includes(comp.id)}
-					on:nodeMouseDown={handleNodeMouseDown}
-					on:indexUpdate={handleIteratorIndexUpdate}
-					on:nameChange={handleComponentNameChange}
-					{hoveredNode}
-					on:move={handleComponentMove}
-					on:redraw={() => {}}
-					color={comp.color}
-					on:delete={(e) => handleComponentDelete(e.detail.id)}
-				/>
-			</div>
-		{:else if comp.type === "node"}
-			<div
-				class="component-placeholder"
-				on:mousedown={(e) => handleComponentClick(comp, e)}
-				role="button"
-				tabindex="0"
-				on:keydown={() => {}}
-			>
-				<NodeComponent
-					id={comp.id}
-					x={comp.x}
-					y={comp.y}
-					value={comp.value}
-					selected={selectedComponentIds.includes(comp.id)}
-					on:nodeMouseDown={handleNodeMouseDown}
-					on:createConnectedNode={handleCreateConnectedNode}
-					on:move={handleComponentMove}
-					on:delete={(e) => handleComponentDelete(e.detail.id)}
-				></NodeComponent>
-			</div>
-		{:else if comp.type === "binary-node"}
-			<div
-				class="component-placeholder"
-				on:mousedown={(e) => handleComponentClick(comp, e)}
-				role="button"
-				tabindex="0"
-				on:keydown={() => {}}
-			>
-				<BinaryNodeComponent
-					id={comp.id}
-					x={comp.x}
-					y={comp.y}
-					value={comp.value}
-					selected={selectedComponentIds.includes(comp.id)}
-					on:nodeMouseDown={handleNodeMouseDown}
-					on:createConnectedNode={handleCreateConnectedNode}
-					on:move={handleComponentMove}
-					on:delete={(e) => handleComponentDelete(e.detail.id)}
-				></BinaryNodeComponent>
-			</div>
-		{:else if comp.type === "nary-node"}
-			<div
-				class="component-placeholder"
-				on:mousedown={(e) => handleComponentClick(comp, e)}
-				role="button"
-				tabindex="0"
-				on:keydown={() => {}}
-			>
-				<NaryNodeComponent
-					id={comp.id}
-					x={comp.x}
-					y={comp.y}
-					value={comp.value}
-					childCount={comp.childCount || 3}
-					selected={selectedComponentIds.includes(comp.id)}
-					on:nodeMouseDown={handleNodeMouseDown}
-					on:createConnectedNode={handleCreateConnectedNode}
-					on:move={handleComponentMove}
-					on:delete={(e) => handleComponentDelete(e.detail.id)}
-				></NaryNodeComponent>
-			</div>
-		{/if}
-	{/each}
-	<div class="group-selection-box"></div>
-
-	<!-- Link rendering with selection highlighting -->
-	<svg
-		style="position:absolute; left:0; top:0; width:5000px; height:5000px; pointer-events:none; z-index:1;"
+	<div
+		style="transform: translate({panX}px, {panY}px) scale({zoom}); transform-origin: 0 0; width: 5000px; height: 5000px; position:relative;"
 	>
-		<defs>
-			<!-- Arrow marker for normal links -->
-			<marker
-				id="arrowhead"
-				markerWidth="10"
-				markerHeight="10"
-				refX="9"
-				refY="3"
-				orient="auto"
-				markerUnits="strokeWidth"
-			>
-				<polygon points="0 0, 10 3, 0 6" fill="context-stroke" />
-			</marker>
-			<!-- Arrow marker for selected links -->
-			<marker
-				id="arrowhead-selected"
-				markerWidth="10"
-				markerHeight="10"
-				refX="9"
-				refY="3"
-				orient="auto"
-				markerUnits="strokeWidth"
-			>
-				<polygon points="0 0, 10 3, 0 6" fill="#d32f2f" />
-			</marker>
-			<!-- Arrow marker for dragging link -->
-			<marker
-				id="arrowhead-dragging"
-				markerWidth="10"
-				markerHeight="10"
-				refX="9"
-				refY="3"
-				orient="auto"
-				markerUnits="strokeWidth"
-			>
-				<polygon points="0 0, 10 3, 0 6" fill="#1976d2" />
-			</marker>
-		</defs>
-		{#each $linkEndpoints as { fromPos, toPos, link, path }}
-			{#if fromPos && toPos}
-				<!-- Thicker invisible path for easier selection -->
-				<path
-					d={path}
-					stroke="transparent"
-					stroke-width="16"
-					fill="none"
-					style="pointer-events:stroke"
-					on:click={(e) => handleLinkClick(link, e)}
+		{#each comps as comp (comp.id)}
+			{#if comp.type === "array"}
+				<!-- Wrap ArrayComponent so we can handle clicks but not interfere with component's own dragging -->
+				<div
+					class="component-placeholder"
+					on:mousedown={(e) => handleComponentClick(comp, e)}
 					role="button"
 					tabindex="0"
 					on:keydown={() => {}}
-				/>
-				<path
-					d={path}
-					stroke={selectedLinks.includes(link) ? "#d32f2f" : link.color}
-					stroke-width={selectedLinks.includes(link) ? 4 : 2}
-					stroke-dasharray={selectedLinks.includes(link) ? "6,3" : "none"}
-					fill="none"
-					marker-end={selectedLinks.includes(link)
-						? "url(#arrowhead-selected)"
-						: "url(#arrowhead)"}
-					style="pointer-events:stroke"
-					on:click={(e) => handleLinkClick(link, e)}
+				>
+					<ArrayComponent
+						id={comp.id}
+						x={comp.x}
+						y={comp.y}
+						length={comp.length}
+						on:nodeMouseDown={handleNodeMouseDown}
+						on:indexUpdate={handleIteratorIndexUpdate}
+						on:move={handleComponentMove}
+						on:redraw={() => {}}
+						on:delete={(e) => handleComponentDelete(e.detail.id)}
+					/>
+				</div>
+			{:else if comp.type === "2darray"}
+				<div
+					class="component-placeholder"
+					on:mousedown={(e) => handleComponentClick(comp, e)}
 					role="button"
 					tabindex="0"
 					on:keydown={() => {}}
-				/>
+				>
+					<Table2DComponent
+						id={comp.id}
+						x={comp.x}
+						y={comp.y}
+						rows={comp.rows}
+						cols={comp.cols}
+						on:nodeMouseDown={handleNodeMouseDown}
+						on:move={handleComponentMove}
+						on:redraw={() => {}}
+						on:delete={(e) => handleComponentDelete(e.detail.id)}
+					/>
+				</div>
+			{:else if comp.type === "pointer"}
+				<div
+					class="component-placeholder"
+					on:mousedown={(e) => handleComponentClick(comp, e)}
+					role="button"
+					tabindex="0"
+					on:keydown={() => {}}
+				>
+					<PointerComponent
+						id={comp.id}
+						x={comp.x}
+						y={comp.y}
+						value={comp.value}
+						name={comp.name || "Pointer"}
+						on:nodeMouseDown={handleNodeMouseDown}
+						on:nameChange={handleComponentNameChange}
+						{hoveredNode}
+						on:move={handleComponentMove}
+						on:redraw={() => {}}
+						on:delete={(e) => handleComponentDelete(e.detail.id)}
+					/>
+				</div>
+			{:else if comp.type === "iterator"}
+				<div
+					class="component-placeholder"
+					on:mousedown={(e) => handleComponentClick(comp, e)}
+					role="button"
+					tabindex="0"
+					on:keydown={() => {}}
+				>
+					<IteratorComponent
+						id={comp.id}
+						x={comp.x}
+						y={comp.y}
+						linkedArrays={comp.linkedArrays || []}
+						name={comp.name || "Iterator"}
+						selected={selectedComponentIds.includes(comp.id)}
+						on:nodeMouseDown={handleNodeMouseDown}
+						on:indexUpdate={handleIteratorIndexUpdate}
+						on:nameChange={handleComponentNameChange}
+						{hoveredNode}
+						on:move={handleComponentMove}
+						on:redraw={() => {}}
+						color={comp.color}
+						on:delete={(e) => handleComponentDelete(e.detail.id)}
+					/>
+				</div>
+			{:else if comp.type === "node"}
+				<div
+					class="component-placeholder"
+					on:mousedown={(e) => handleComponentClick(comp, e)}
+					role="button"
+					tabindex="0"
+					on:keydown={() => {}}
+				>
+					<NodeComponent
+						id={comp.id}
+						x={comp.x}
+						y={comp.y}
+						value={comp.value}
+						selected={selectedComponentIds.includes(comp.id)}
+						on:nodeMouseDown={handleNodeMouseDown}
+						on:createConnectedNode={handleCreateConnectedNode}
+						on:move={handleComponentMove}
+						on:delete={(e) => handleComponentDelete(e.detail.id)}
+					></NodeComponent>
+				</div>
+			{:else if comp.type === "binary-node"}
+				<div
+					class="component-placeholder"
+					on:mousedown={(e) => handleComponentClick(comp, e)}
+					role="button"
+					tabindex="0"
+					on:keydown={() => {}}
+				>
+					<BinaryNodeComponent
+						id={comp.id}
+						x={comp.x}
+						y={comp.y}
+						value={comp.value}
+						selected={selectedComponentIds.includes(comp.id)}
+						on:nodeMouseDown={handleNodeMouseDown}
+						on:createConnectedNode={handleCreateConnectedNode}
+						on:move={handleComponentMove}
+						on:delete={(e) => handleComponentDelete(e.detail.id)}
+					></BinaryNodeComponent>
+				</div>
+			{:else if comp.type === "nary-node"}
+				<div
+					class="component-placeholder"
+					on:mousedown={(e) => handleComponentClick(comp, e)}
+					role="button"
+					tabindex="0"
+					on:keydown={() => {}}
+				>
+					<NaryNodeComponent
+						id={comp.id}
+						x={comp.x}
+						y={comp.y}
+						value={comp.value}
+						childCount={comp.childCount || 3}
+						selected={selectedComponentIds.includes(comp.id)}
+						on:nodeMouseDown={handleNodeMouseDown}
+						on:createConnectedNode={handleCreateConnectedNode}
+						on:move={handleComponentMove}
+						on:delete={(e) => handleComponentDelete(e.detail.id)}
+					></NaryNodeComponent>
+				</div>
 			{/if}
 		{/each}
-		{#if draggingLink && draggingLink.from.getNodeCenter}
-			{@const fromPos = draggingLink.from.getNodeCenter()}
-			{#if hoveredNode}
-				{@const toPos = hoveredNode.getNodeCenter()}
-				<path
-					d={makeSmartOrBezierPath(
-						fromPos.x,
-						fromPos.y,
-						toPos.x,
-						toPos.y,
-						draggingLink.from.side,
-						hoveredNode.side,
-						draggingLink.from.componentId,
-						hoveredNode.componentId
-					)}
-					stroke="#1976d2"
-					stroke-width="2"
-					stroke-dasharray="4"
-					fill="none"
-					marker-end="url(#arrowhead-dragging)"
-				/>
-			{:else}
-				<!-- Show temp dashed line from node to mouse -->
-				<line
-					x1={fromPos.x}
-					y1={fromPos.y}
-					x2={mouse.x - $svgRect.left}
-					y2={mouse.y - $svgRect.top}
-					stroke="#1976d2"
-					stroke-width="2"
-					stroke-dasharray="6,6"
-					fill="none"
-				/>
+		<div class="group-selection-box"></div>
+
+		<!-- Link rendering with selection highlighting -->
+		<svg
+			style="position:absolute; left:0; top:0; width:5000px; height:5000px; pointer-events:none; z-index:1;"
+		>
+			<defs>
+				<!-- Arrow marker for normal links -->
+				<marker
+					id="arrowhead"
+					markerWidth="10"
+					markerHeight="10"
+					refX="9"
+					refY="3"
+					orient="auto"
+					markerUnits="strokeWidth"
+				>
+					<polygon points="0 0, 10 3, 0 6" fill="context-stroke" />
+				</marker>
+				<!-- Arrow marker for selected links -->
+				<marker
+					id="arrowhead-selected"
+					markerWidth="10"
+					markerHeight="10"
+					refX="9"
+					refY="3"
+					orient="auto"
+					markerUnits="strokeWidth"
+				>
+					<polygon points="0 0, 10 3, 0 6" fill="#d32f2f" />
+				</marker>
+				<!-- Arrow marker for dragging link -->
+				<marker
+					id="arrowhead-dragging"
+					markerWidth="10"
+					markerHeight="10"
+					refX="9"
+					refY="3"
+					orient="auto"
+					markerUnits="strokeWidth"
+				>
+					<polygon points="0 0, 10 3, 0 6" fill="#1976d2" />
+				</marker>
+			</defs>
+			{#each $linkEndpoints as { fromPos, toPos, link, path }}
+				{#if fromPos && toPos}
+					<!-- Thicker invisible path for easier selection -->
+					<path
+						d={path}
+						stroke="transparent"
+						stroke-width="16"
+						fill="none"
+						style="pointer-events:stroke"
+						on:click={(e) => handleLinkClick(link, e)}
+						role="button"
+						tabindex="0"
+						on:keydown={() => {}}
+					/>
+					<path
+						d={path}
+						stroke={selectedLinks.includes(link) ? "#d32f2f" : link.color}
+						stroke-width={selectedLinks.includes(link) ? 4 : 2}
+						stroke-dasharray={selectedLinks.includes(link) ? "6,3" : "none"}
+						fill="none"
+						marker-end={selectedLinks.includes(link)
+							? "url(#arrowhead-selected)"
+							: "url(#arrowhead)"}
+						style="pointer-events:stroke"
+						on:click={(e) => handleLinkClick(link, e)}
+						role="button"
+						tabindex="0"
+						on:keydown={() => {}}
+					/>
+				{/if}
+			{/each}
+			{#if draggingLink && draggingLink.from.getNodeCenter}
+				{@const fromPos = draggingLink.from.getNodeCenter()}
+				{#if hoveredNode}
+					{@const toPos = hoveredNode.getNodeCenter()}
+					<path
+						d={makeSmartOrBezierPath(
+							fromPos.x,
+							fromPos.y,
+							toPos.x,
+							toPos.y,
+							draggingLink.from.side,
+							hoveredNode.side,
+							draggingLink.from.componentId,
+							hoveredNode.componentId
+						)}
+						stroke="#1976d2"
+						stroke-width="2"
+						stroke-dasharray="4"
+						fill="none"
+						marker-end="url(#arrowhead-dragging)"
+					/>
+				{:else}
+					<!-- Show temp dashed line from node to mouse -->
+					<line
+						x1={fromPos.x}
+						y1={fromPos.y}
+						x2={mouse.x - $svgRect.left}
+						y2={mouse.y - $svgRect.top}
+						stroke="#1976d2"
+						stroke-width="2"
+						stroke-dasharray="6,6"
+						fill="none"
+					/>
+				{/if}
 			{/if}
+		</svg>
+
+		<!-- Selection box overlay -->
+		{#if selectionBox}
+			<div
+				class="selection-box"
+				style="position:absolute; left:{selectionBox.x}px; top:{selectionBox.y}px; width:{selectionBox.width}px; height:{selectionBox.height}px;"
+			></div>
 		{/if}
-	</svg>
 
-	<!-- Selection box overlay -->
-	{#if selectionBox}
-		<div
-			class="selection-box"
-			style="position:absolute; left:{selectionBox.x}px; top:{selectionBox.y}px; width:{selectionBox.width}px; height:{selectionBox.height}px;"
-		></div>
-	{/if}
-
-	<!-- Add the group selection box element -->
+		<!-- Add the group selection box element -->
 	</div>
 	<!-- End of transformed canvas content -->
-	
+
 	<!-- Zoom and pan controls indicator -->
 	<div class="canvas-info">
 		<div>Zoom: {(zoom * 100).toFixed(0)}%</div>
