@@ -1,6 +1,12 @@
 import { get } from "svelte/store";
 import { components, links } from "./Whiteboard_back";
-import { saveFile, loadFile, listFiles, deleteFile } from "./firebase";
+import {
+	saveFile,
+	loadFile,
+	listFiles,
+	deleteFile,
+	listFileNames,
+} from "./firebase";
 import { toPng } from "html-to-image";
 import { writable } from "svelte/store";
 
@@ -127,15 +133,17 @@ export async function saveCurrentFile(userId, filename) {
 	//check if same filename exists in the firestore, and warn user before overwriting
 	if (!userId) throw new Error("Not authenticated");
 
-	refreshFileList(userId);
-
-	const existingFiles = get(fileList);
+	const existingFiles = await listFileNames(userId);
 	console.log("Existing files:", existingFiles);
 	if (existingFiles.includes(filename)) {
 		const confirmOverwrite = confirm(
 			"File already exists. Do you want to overwrite it?"
 		);
-		if (!confirmOverwrite) return;
+		if (!confirmOverwrite) {
+			let error = new Error("Save aborted by user: overwrite canceled");
+			error.cause = "user_aborted";
+			throw error;
+		}
 	}
 
 	const data = serializeState();
@@ -143,11 +151,11 @@ export async function saveCurrentFile(userId, filename) {
 	const sanitized = sanitizeForFirestore(data);
 
 	// Debug: log structure to find nested arrays
-	console.log(
-		"Serialized components sample:",
-		sanitized.components?.slice(0, 2)
-	);
-	console.log("Serialized links sample:", sanitized.links?.slice(0, 2));
+	// console.log(
+	// 	"Serialized components sample:",
+	// 	sanitized.components?.slice(0, 2)
+	// );
+	// console.log("Serialized links sample:", sanitized.links?.slice(0, 2));
 
 	try {
 		await saveFile(userId, filename, sanitized);

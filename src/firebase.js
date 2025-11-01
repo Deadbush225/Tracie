@@ -117,6 +117,7 @@ export async function listFiles(userId) {
 	if (!userId) throw new Error("User not authenticated");
 
 	const filesRef = collection(db, `users/${userId}/files`);
+
 	const q = query(filesRef, orderBy("updatedAt", "desc"));
 	const querySnapshot = await getDocs(q);
 
@@ -129,6 +130,22 @@ export async function listFiles(userId) {
 	});
 
 	return files;
+}
+
+export async function listFileNames(userId) {
+	if (!userId) throw new Error("User not authenticated");
+
+	const filesRef = collection(db, `users/${userId}/files`);
+
+	const q = query(filesRef, orderBy("updatedAt", "desc"));
+	const querySnapshot = await getDocs(q);
+
+	const fileNames = [];
+	querySnapshot.forEach((doc) => {
+		fileNames.push(doc.id);
+	});
+
+	return fileNames;
 }
 
 export async function deleteFile(userId, filename) {

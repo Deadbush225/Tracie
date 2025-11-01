@@ -833,7 +833,10 @@
 			if (filename) {
 				saveCurrentFile($user.uid, filename)
 					.then(() => alert("File saved successfully!"))
-					.catch((err) => alert("Error saving file: " + err.message));
+					.catch((err) => {
+						if (err.cause !== "user_aborted")
+							alert("File not saved: " + err.message);
+					});
 			}
 		}
 
