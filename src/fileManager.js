@@ -45,7 +45,11 @@ export function serializeState() {
 // Deserialize and load state
 export function loadState(data) {
 	if (data.components) {
-		components.set(data.components);
+		// Reconstruct components and restore nested arrays from flattened object format
+		const reconstructedComponents = data.components.map((comp) =>
+			reconstructNestedArrays(comp)
+		);
+		components.set(reconstructedComponents);
 	}
 	if (data.links) {
 		// Reconstruct links with getNodeCenter functions
@@ -88,20 +92,90 @@ export function loadState(data) {
 	isSaved.set(true);
 }
 
+// Helper to reconstruct nested arrays from flattened object format
+function reconstructNestedArrays(value) {
+	if (value === null || value === undefined) return value;
+
+	if (Array.isArray(value)) {
+		return value.map(reconstructNestedArrays);
+	}
+
+	if (typeof value === "object") {
+		// Check if this is a flattened nested array (has __isNestedArray marker)
+		if (value.__isNestedArray && value.__length !== undefined) {
+			const arr = [];
+			for (let i = 0; i < value.__length; i++) {
+				arr.push(reconstructNestedArrays(value[i.toString()]));
+			}
+			return arr;
+		}
+
+		// Regular object - recurse into its properties
+		const out = {};
+		for (const [k, v] of Object.entries(value)) {
+			if (k === "__isNestedArray" || k === "__length") continue; // skip metadata
+			out[k] = reconstructNestedArrays(v);
+		}
+		return out;
+	}
+
+	return value;
+}
+
 // Save current file to Firebase
 export async function saveCurrentFile(userId, filename) {
+	//check if same filename exists in the firestore, and warn user before overwriting
 	if (!userId) throw new Error("Not authenticated");
+
+	refreshFileList(userId);
+
+	const existingFiles = get(fileList);
+	console.log("Existing files:", existingFiles);
+	if (existingFiles.includes(filename)) {
+		const confirmOverwrite = confirm(
+			"File already exists. Do you want to overwrite it?"
+		);
+		if (!confirmOverwrite) return;
+	}
 
 	const data = serializeState();
 	// Sanitize data to remove unsupported Firestore values (undefined, functions)
 	const sanitized = sanitizeForFirestore(data);
+
+	// Debug: log structure to find nested arrays
+	console.log(
+		"Serialized components sample:",
+		sanitized.components?.slice(0, 2)
+	);
+	console.log("Serialized links sample:", sanitized.links?.slice(0, 2));
+
 	try {
 		await saveFile(userId, filename, sanitized);
 	} catch (err) {
-		console.error("Failed to save file to Firebase. Data sample:", {
+		console.error("Failed to save file to Firebase. Full error:", err);
+		console.error("Data sample:", {
 			filename,
-			sample: JSON.stringify(sanitized).slice(0, 200),
+			sample: JSON.stringify(sanitized).slice(0, 500),
 		});
+		// Log component field types to find nested arrays
+		if (sanitized.components) {
+			sanitized.components.forEach((comp, idx) => {
+				Object.entries(comp).forEach(([key, val]) => {
+					if (Array.isArray(val)) {
+						console.log(`Component[${idx}].${key} is array:`, val);
+						// Check if any array element is itself an array
+						val.forEach((item, i) => {
+							if (Array.isArray(item)) {
+								console.error(
+									`NESTED ARRAY FOUND: Component[${idx}].${key}[${i}]`,
+									item
+								);
+							}
+						});
+					}
+				});
+			});
+		}
 		throw err;
 	}
 
@@ -110,11 +184,31 @@ export async function saveCurrentFile(userId, filename) {
 	initialState = data;
 }
 
-// Replace undefined with null and remove functions so Firestore accepts the document
-function sanitizeForFirestore(value) {
+// Replace undefined with null, remove functions, and flatten nested arrays so Firestore accepts the document
+function sanitizeForFirestore(value, depth = 0) {
 	if (value === undefined) return null;
 	if (value === null) return null;
-	if (Array.isArray(value)) return value.map(sanitizeForFirestore);
+
+	if (Array.isArray(value)) {
+		// Check if this array contains nested arrays (Firestore doesn't support nested arrays)
+		const hasNestedArray = value.some((item) => Array.isArray(item));
+
+		if (hasNestedArray) {
+			// Convert nested array to object with numeric keys (e.g., 2D array -> { "0": [...], "1": [...] })
+			const obj = {};
+			value.forEach((item, idx) => {
+				obj[idx.toString()] = sanitizeForFirestore(item, depth + 1);
+			});
+			// Add metadata to help with deserialization
+			obj.__isNestedArray = true;
+			obj.__length = value.length;
+			return obj;
+		}
+
+		// Regular array without nesting
+		return value.map((v) => sanitizeForFirestore(v, depth + 1));
+	}
+
 	if (typeof value === "object") {
 		const out = {};
 		for (const [k, v] of Object.entries(value)) {
@@ -126,7 +220,7 @@ function sanitizeForFirestore(value) {
 				// skip functions entirely
 				continue;
 			}
-			out[k] = sanitizeForFirestore(v);
+			out[k] = sanitizeForFirestore(v, depth + 1);
 		}
 		return out;
 	}
