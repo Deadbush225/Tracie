@@ -1748,7 +1748,7 @@
 	<!-- Zoom and pan controls indicator -->
 	<div class="canvas-info">
 		<div>Zoom: {(zoom * 100).toFixed(0)}%</div>
-		<div>Pan: X: {panX}px, Y: {panY}px</div>
+		<!-- <div>Pan: X: {panX}px, Y: {panY}px</div> -->
 		<div style="font-size: 11px; color: #666; margin-top: 4px;">
 			Scroll: Pan | Ctrl+Scroll: Zoom | Middle Click: Pan | Ctrl+0: Reset
 		</div>

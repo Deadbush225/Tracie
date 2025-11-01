@@ -147,6 +147,7 @@
 		placeholder="Pointer"
 		style="width:100%; font-size:1.1em; border:none; outline:none; background:transparent; padding:4px;"
 		on:input={() => dispatch("nameChange", { id, name })}
+		on:click|stopPropagation
 	/>
 </ComponentBox>
 
