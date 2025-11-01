@@ -13,6 +13,49 @@ export const commandHistory = writable({
 export const components = writable([]);
 export const links = writable([]);
 
+// Developer console helpers
+// Call `listComponents()` in the browser console to print a table of components
+if (typeof window !== "undefined") {
+	window.listComponents = () => {
+		const comps = get(components);
+		try {
+			console.table(
+				comps.map((c) => ({
+					id: c.id,
+					type: c.type,
+					x: c.x,
+					y: c.y,
+					name: c.name || c.value || "",
+				}))
+			);
+		} catch (err) {
+			console.log("Components:", comps);
+		}
+		return comps;
+	};
+
+	window.listLinks = () => {
+		const link = get(links);
+		try {
+			console.table(
+				link.map((l) => ({
+					from: l.from,
+					to: l.to,
+					type: l.type,
+				}))
+			);
+		} catch (err) {
+			console.log("Links:", link);
+		}
+		return link;
+	};
+
+	// Expose the raw Svelte store for advanced inspection/manipulation
+	window.__componentsStore = components;
+}
+
+/* ---------------------------------------------------------------- */
+
 // Maximum commands to keep in history
 const MAX_HISTORY = 100;
 

@@ -71,6 +71,14 @@
 	$: comps = $components;
 	$: ls = $links;
 
+	function handlePropertyChange(event) {
+		console.log("Property Change:", event);
+		const { id, property, value } = event;
+		components.update((comps) =>
+			comps.map((c) => (c.id === id ? { ...c, [property]: value } : c))
+		);
+	}
+
 	function handleCreateConnectedNode(event) {
 		console.log("New Node Created");
 		const { sourceId, direction } = event.detail;
@@ -117,12 +125,7 @@
 		}
 
 		// Create the new node using the same type as the source node
-		const newNodeId = addNodeByType(
-			sourceComponent.type,
-			"NewNode",
-			newX,
-			newY
-		);
+		const newNodeId = addNodeByType(sourceComponent.type, "", newX, newY);
 		const newNode = $components.find((c) => c.id === newNodeId);
 		if (!newNode) return;
 
@@ -1550,7 +1553,7 @@
 						selected={selectedComponentIds.includes(comp.id)}
 						on:nodeMouseDown={handleNodeMouseDown}
 						on:indexUpdate={handleIteratorIndexUpdate}
-						on:nameChange={handleComponentNameChange}
+						on:propertyChange={(e) => handlePropertyChange(e.detail)}
 						{hoveredNode}
 						on:move={handleComponentMove}
 						on:redraw={() => {}}
@@ -1572,6 +1575,7 @@
 						y={comp.y}
 						value={comp.value}
 						selected={selectedComponentIds.includes(comp.id)}
+						on:propertyChange={(e) => handlePropertyChange(e.detail)}
 						on:nodeMouseDown={handleNodeMouseDown}
 						on:createConnectedNode={handleCreateConnectedNode}
 						on:move={handleComponentMove}

@@ -118,7 +118,12 @@
 			class="iterator-label"
 			style="color: {color};"
 			placeholder="Iterator"
-			on:input={(e) => dispatch("nameChange", { id, name: e.target.value })}
+			on:input={(e) =>
+				dispatch("propertyChange", {
+					id,
+					property: "name",
+					value: e.target.value,
+				})}
 			on:click|stopPropagation
 		/>
 		<div class="iterator-controls">

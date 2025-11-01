@@ -19,22 +19,13 @@
 			direction,
 		});
 	}
+	// import { onMount } from "svelte";
 
-	function handleDblClick() {
-		editing = true;
-		setTimeout(() => {
-			const input = document.getElementById(`node-edit-${id}`);
-			if (input) input.focus();
-		}, 0);
-	}
+	// let initialValue = "";
 
-	function handleBlur() {
-		editing = false;
-	}
-
-	function handleInput(e) {
-		value = e.target.value;
-	}
+	// onMount(() => {
+	// 	initialValue = value;
+	// });
 </script>
 
 <ComponentBox
@@ -51,20 +42,19 @@
 	<div class="node-container">
 		<!-- The rectangular node -->
 		<div class="node">
-			<!-- Main content -->
-			{#if editing}
-				<input
-					id={"node-edit-" + id}
-					{value}
-					on:input={handleInput}
-					on:blur={handleBlur}
-					class="node-input"
-				/>
-			{:else}
-				<span class="node-value" on:dblclick={handleDblClick}>
-					{value || "Value"}
-				</span>
-			{/if}
+			<input
+				id={"node-edit-" + id}
+				bind:value
+				class="node-input"
+				on:change={(e) => {
+					console.log("Value changed:", e.target.value);
+					dispatch("propertyChange", {
+						id,
+						property: "value",
+						value: e.target.value,
+					});
+				}}
+			/>
 
 			<!-- Next pointer -->
 			<!-- <div class="next-pointer">

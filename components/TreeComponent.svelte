@@ -44,7 +44,7 @@
 	{#if editing}
 		<input
 			id={"tree-edit-" + id}
-			value={inputValue}
+			bind:inputValue
 			on:input={handleInput}
 			on:blur={handleBlur}
 			style="margin-bottom:4px; width:80%;"
@@ -54,7 +54,7 @@
 			style="text-align:center; color:#1976d2; font-weight:bold; margin-bottom:4px; cursor:pointer;"
 			on:dblclick={handleDblClick}
 		>
-			{name}
+			{inputValue}
 		</div>
 	{/if}
 	<TreeNode
