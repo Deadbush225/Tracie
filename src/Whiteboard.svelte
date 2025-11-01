@@ -724,33 +724,33 @@
 	}
 
 	// Function to update the selection box
-	function updateSelectionBox() {
-		const selectionOverlay = document.querySelector(".group-selection-box");
+	// function updateSelectionBox() {
+	// 	const selectionOverlay = document.querySelector(".group-selection-box");
 
-		if (selectedComponentIds.length > 0 && selectionOverlay) {
-			// Find bounding box of all selected components
-			let minX = Infinity;
-			let minY = Infinity;
-			let maxX = -Infinity;
-			let maxY = -Infinity;
+	// 	if (selectedComponentIds.length > 0 && selectionOverlay) {
+	// 		// Find bounding box of all selected components
+	// 		let minX = Infinity;
+	// 		let minY = Infinity;
+	// 		let maxX = -Infinity;
+	// 		let maxY = -Infinity;
 
-			selectedComponentIds.forEach((id) => {
-				const box = getComponentBox(id);
-				if (box) {
-					minX = Math.min(minX, box.left) - 3;
-					minY = Math.min(minY, box.top) - 3;
-					maxX = Math.max(maxX, box.right) + 4;
-					maxY = Math.max(maxY, box.bottom) + 4;
-				}
-			});
+	// 		selectedComponentIds.forEach((id) => {
+	// 			const box = getComponentBox(id);
+	// 			if (box) {
+	// 				minX = Math.min(minX, box.left) - 3;
+	// 				minY = Math.min(minY, box.top) - 3;
+	// 				maxX = Math.max(maxX, box.right) + 4;
+	// 				maxY = Math.max(maxY, box.bottom) + 4;
+	// 			}
+	// 		});
 
-			selectionOverlay.style.left = `${minX}px`;
-			selectionOverlay.style.top = `${minY}px`;
-			selectionOverlay.style.width = `${maxX - minX}px`;
-			selectionOverlay.style.height = `${maxY - minY}px`;
-			selectionOverlay.style.opacity = "100%";
-		}
-	}
+	// 		selectionOverlay.style.left = `${minX}px`;
+	// 		selectionOverlay.style.top = `${minY}px`;
+	// 		selectionOverlay.style.width = `${maxX - minX}px`;
+	// 		selectionOverlay.style.height = `${maxY - minY}px`;
+	// 		selectionOverlay.style.opacity = "100%";
+	// 	}
+	// }
 
 	// Helper to get endpoints and path for all links (reactive)
 	function handleLinkClick(link, event) {
@@ -1007,6 +1007,11 @@
 	// Selection box visualizer (add it to the relative position container)
 	$: {
 		$components;
+		selectedComponentIds;
+		updateSelectionBox();
+	}
+
+	function updateSelectionBox() {
 		console.log("Creating selection visualizer");
 
 		const selectionOverlay = document.querySelector(".group-selection-box");
@@ -1420,6 +1425,7 @@
 	style="position:relative; width:100vw; height:calc(100vh - 40px); margin-top:40px; background:#f8f8f8; overflow:hidden;"
 	on:mousedown={(e) => {
 		handlePanStart(e);
+		if (e.button === 1) return; // if event is middle mouse button, don't start selection
 		handleSelectionStart(e);
 	}}
 	on:mousemove={(e) => {
@@ -1428,6 +1434,7 @@
 	}}
 	on:mouseup={(e) => {
 		handlePanEnd();
+		if (e.button === 1) return; // if event is middle mouse button, don't end selection
 		handleSelectionEnd(e);
 	}}
 	on:wheel={handleWheel}
