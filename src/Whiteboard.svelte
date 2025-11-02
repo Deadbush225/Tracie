@@ -1216,6 +1216,149 @@
 				];
 			}
 			console.log(selectedComponentIds);
+
+			/**
+			 * Algorithm (high level):
+			 *   1. Normalize the selection rectangle into an axis-aligned bounding box:
+			 *        rect = { left, right, top, bottom } based on x,y,width,height
+			 *   2. For each link in linkEndpoints:
+			 *        a. Build the ordered list of points describing the link segments:
+			 *             pts = [fromPos, ...path (if any), toPos]
+			 *        b. For each consecutive pair (p0, p1) in pts:
+			 *             - Quick reject: if both p0 and p1 are strictly outside rect and the
+			 *               segment's bounding box does not overlap rect, skip.
+			 *             - Precise test: if either endpoint is inside rect OR the segment
+			 *               intersects any of the four rect edges, consider the link selected.
+			 *        c. If any segment passes the precise test, add the link to the
+			 *           result set (ensure uniqueness, e.g. via Set keyed by link id).
+			 *   3. Return the unique collection of selected links.
+			 */
+			function pointInRect(
+				x: number,
+				y: number,
+				r: { x: number; y: number; w: number; h: number }
+			) {
+				return x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
+			}
+
+			function orient(
+				ax: number,
+				ay: number,
+				bx: number,
+				by: number,
+				cx: number,
+				cy: number
+			) {
+				return (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
+			}
+
+			function onSegment(
+				ax: number,
+				ay: number,
+				bx: number,
+				by: number,
+				cx: number,
+				cy: number
+			) {
+				return (
+					Math.min(ax, bx) <= cx &&
+					cx <= Math.max(ax, bx) &&
+					Math.min(ay, by) <= cy &&
+					cy <= Math.max(ay, by)
+				);
+			}
+
+			function segmentsIntersect(
+				x1: number,
+				y1: number,
+				x2: number,
+				y2: number,
+				x3: number,
+				y3: number,
+				x4: number,
+				y4: number
+			) {
+				const o1 = orient(x1, y1, x2, y2, x3, y3);
+				const o2 = orient(x1, y1, x2, y2, x4, y4);
+				const o3 = orient(x3, y3, x4, y4, x1, y1);
+				const o4 = orient(x3, y3, x4, y4, x2, y2);
+
+				if (o1 === 0 && onSegment(x1, y1, x2, y2, x3, y3)) return true;
+				if (o2 === 0 && onSegment(x1, y1, x2, y2, x4, y4)) return true;
+				if (o3 === 0 && onSegment(x3, y3, x4, y4, x1, y1)) return true;
+				if (o4 === 0 && onSegment(x3, y3, x4, y4, x2, y2)) return true;
+
+				return o1 > 0 !== o2 > 0 && o3 > 0 !== o4 > 0;
+			}
+
+			function segmentIntersectsRect(
+				x1: number,
+				y1: number,
+				x2: number,
+				y2: number,
+				rect: { x: number; y: number; w: number; h: number }
+			) {
+				// If either endpoint is inside rect -> intersects
+				if (pointInRect(x1, y1, rect) || pointInRect(x2, y2, rect)) return true;
+
+				const rx = rect.x;
+				const ry = rect.y;
+				const rw = rect.w;
+				const rh = rect.h;
+
+				// Rect edges
+				const leftX = rx;
+				const rightX = rx + rw;
+				const topY = ry;
+				const bottomY = ry + rh;
+
+				// Check intersection with each edge of the rect
+				if (segmentsIntersect(x1, y1, x2, y2, leftX, topY, rightX, topY))
+					return true; // top
+				if (segmentsIntersect(x1, y1, x2, y2, rightX, topY, rightX, bottomY))
+					return true; // right
+				if (segmentsIntersect(x1, y1, x2, y2, rightX, bottomY, leftX, bottomY))
+					return true; // bottom
+				if (segmentsIntersect(x1, y1, x2, y2, leftX, bottomY, leftX, topY))
+					return true; // left
+
+				return false;
+			}
+
+			const newLinkSelection: any[] = [];
+
+			for (const item of $linkEndpoints || []) {
+				const { fromPos, toPos, link } = item;
+				if (!fromPos || !toPos) continue;
+
+				const rect = {
+					x: selectionBox.x,
+					y: selectionBox.y,
+					w: selectionBox.width,
+					h: selectionBox.height,
+				};
+
+				if (
+					segmentIntersectsRect(fromPos.x, fromPos.y, toPos.x, toPos.y, rect)
+				) {
+					newLinkSelection.push(link);
+				}
+			}
+
+			// Apply selection respecting Shift key behavior
+			if (!event.shiftKey) {
+				selectedLinks = newLinkSelection;
+			} else {
+				// merge unique
+				const merged = [...selectedLinks, ...newLinkSelection];
+				selectedLinks = Array.from(new Set(merged));
+			}
+
+			// Maintain legacy single selectedLink reference (last selected)
+			selectedLink =
+				selectedLinks.length > 0
+					? selectedLinks[selectedLinks.length - 1]
+					: null;
 		} else {
 			// Check if the click was on a component or element before deselecting
 			const isOnComponent =
