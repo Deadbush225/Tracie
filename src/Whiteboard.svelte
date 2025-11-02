@@ -867,7 +867,9 @@
 			// Delete links first if any are selected
 			if (selectedLinks.length > 0) {
 				deleteSelectedLinks();
-			} else if ($selectedComponentIds.length > 0) {
+			}
+
+			if ($selectedComponentIds.length > 0) {
 				// Delete all selected components
 				deleteComponent($selectedComponentIds);
 			}
