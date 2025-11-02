@@ -1,5 +1,5 @@
 import { writable, get } from "svelte/store";
-import { svgRect } from "./ui_store";
+import { svgRect, selectedComponentIds } from "./ui_store";
 
 export let nextId = 10; // Start from 3 to account for the initial components
 
@@ -122,34 +122,50 @@ class AddComponentCommand {
 	}
 }
 
-// Delete Component Command
+// Delete Component Command (supports single or multiple component IDs)
 class DeleteComponentCommand {
-	constructor(componentId) {
-		// Store the component and its links before deletion
-		this.componentId = componentId;
-		this.component = get(components).find((c) => c.id === componentId);
+	constructor(componentIds) {
+		// Accept either a single ID or an array of IDs
+		this.componentIds = Array.isArray(componentIds)
+			? componentIds
+			: [componentIds];
+
+		// Store the components and their links before deletion
+		const allComponents = get(components);
+		this.components = allComponents.filter((c) =>
+			this.componentIds.includes(c.id)
+		);
+
+		// Store all links connected to any of the deleted components
 		this.affectedLinks = get(links).filter(
 			(l) =>
-				l.from.componentId === componentId || l.to.componentId === componentId
+				this.componentIds.includes(l.from.componentId) ||
+				this.componentIds.includes(l.to.componentId)
 		);
 	}
 
 	execute() {
 		components.update((comps) =>
-			comps.filter((c) => c.id !== this.componentId)
+			comps.filter((c) => !this.componentIds.includes(c.id))
 		);
 		links.update((ls) =>
 			ls.filter(
 				(l) =>
-					l.from.componentId !== this.componentId &&
-					l.to.componentId !== this.componentId
+					!this.componentIds.includes(l.from.componentId) &&
+					!this.componentIds.includes(l.to.componentId)
 			)
 		);
 	}
 
 	undo() {
-		components.update((comps) => [...comps, this.component]);
+		components.update((comps) => [...comps, ...this.components]);
 		links.update((ls) => [...ls, ...this.affectedLinks]);
+		// After restoring components and links, mark the restored components as selected
+		const restoredIds = this.components.map((c) => c.id);
+
+		setTimeout(() => {
+			selectedComponentIds.update(() => [...restoredIds]);
+		}, 50);
 	}
 }
 
@@ -543,6 +559,15 @@ export function addIteratorComponent() {
 
 export function deleteComponent(id) {
 	executeCommand(new DeleteComponentCommand(id));
+}
+
+// Delete multiple components at once
+export function deleteComponents(ids) {
+	if (!Array.isArray(ids)) {
+		throw new Error("deleteComponents expects an array of component IDs");
+	}
+	if (ids.length === 0) return;
+	executeCommand(new DeleteComponentCommand(ids));
 }
 
 export function moveComponent(id, dx, dy) {

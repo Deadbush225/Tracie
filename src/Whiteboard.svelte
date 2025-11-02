@@ -36,7 +36,7 @@
 	} from "./Whiteboard_back";
 
 	import { onMount, setContext, tick } from "svelte";
-	import { updateSvgRect2, svgRect } from "./ui_store";
+	import { updateSvgRect2, svgRect, selectedComponentIds } from "./ui_store";
 	import { writable } from "svelte/store";
 	import FileBrowser from "../components/FileBrowser.svelte";
 	import { user, authLoading, signInWithGoogle, signOutUser } from "./firebase";
@@ -63,8 +63,6 @@
 	let selectedLink = null; // Keep for backward compatibility
 
 	// Add component selection functionality
-	let selectedComponentIds = [];
-	$: selectedComponentIds;
 
 	// Dropdown menu states
 	let openDropdown = null;
@@ -270,7 +268,7 @@
 		console.log($links);
 
 		// Select the new node
-		selectedComponentIds = [newNode.id];
+		$selectedComponentIds = [newNode.id];
 
 		// Auto-layout the tree after a brief delay to ensure link is created
 		// Only apply to binary and n-ary nodes
@@ -295,7 +293,7 @@
 	function handleComponentDelete(id) {
 		deleteComponent(id);
 		// Remove from selection if it was selected
-		selectedComponentIds = selectedComponentIds.filter((cid) => cid !== id);
+		$selectedComponentIds = $selectedComponentIds.filter((cid) => cid !== id);
 	}
 
 	// Handle component name change
@@ -413,8 +411,6 @@
 
 	function handleNodeMouseDown({ detail }) {
 		mouse = detail.getNodeCenter();
-		console.log("Start Dragging Link from:", mouse);
-		console.log("Detail:", detail);
 
 		draggingLink = {
 			from: {
@@ -507,12 +503,12 @@
 		if (final) {
 			// Only record history on final move (mouse up)
 			if (
-				selectedComponentIds.length > 1 &&
-				selectedComponentIds.includes(id)
+				$selectedComponentIds.length > 1 &&
+				$selectedComponentIds.includes(id)
 			) {
 				// For multi-selection, use the totalDx/totalDy for history
 				moveMultipleComponents(
-					selectedComponentIds,
+					$selectedComponentIds,
 					event.detail.totalDx,
 					event.detail.totalDy
 				);
@@ -522,8 +518,8 @@
 			}
 
 			// Optimize links connected to moved components after movement is complete
-			const movedIds = selectedComponentIds.includes(id)
-				? selectedComponentIds
+			const movedIds = $selectedComponentIds.includes(id)
+				? $selectedComponentIds
 				: [id];
 			const affectedLinks = $links.filter(
 				(link) =>
@@ -534,7 +530,7 @@
 			// Optimize each affected link to find shortest path
 			affectedLinks.forEach((link) => optimizeLinkPath(link));
 		} else {
-			selectedComponentIds.forEach((val) => {
+			$selectedComponentIds.forEach((val) => {
 				components.update((comps) =>
 					comps.map((comp) => {
 						if (comp.id == val) {
@@ -551,8 +547,8 @@
 
 		// Auto-layout tree after movement
 		if (final) {
-			const movedIds = selectedComponentIds.includes(id)
-				? selectedComponentIds
+			const movedIds = $selectedComponentIds.includes(id)
+				? $selectedComponentIds
 				: [id];
 
 			// Check if any moved component is a tree node
@@ -790,7 +786,7 @@
 			selectedLinks = [link];
 			selectedLink = link;
 			// Clear component selection when selecting link without shift
-			selectedComponentIds = [];
+			$selectedComponentIds = [];
 		}
 	}
 
@@ -870,12 +866,10 @@
 			// Delete links first if any are selected
 			if (selectedLinks.length > 0) {
 				deleteSelectedLinks();
-			} else if (selectedComponentIds.length > 0) {
+			} else if ($selectedComponentIds.length > 0) {
 				// Delete all selected components
-				for (const id of selectedComponentIds) {
-					deleteComponent(id);
-				}
-				selectedComponentIds = [];
+				deleteComponent($selectedComponentIds);
+				$selectedComponentIds = [];
 			}
 		}
 
@@ -891,8 +885,8 @@
 			const newIds = [];
 
 			// Duplicate components first
-			if (selectedComponentIds.length > 0) {
-				for (const selectedId of selectedComponentIds) {
+			if ($selectedComponentIds.length > 0) {
+				for (const selectedId of $selectedComponentIds) {
 					const newId = duplicateComponent(selectedId, 20, 20);
 					if (newId) {
 						newIds.push(newId);
@@ -941,7 +935,7 @@
 
 			// Select the newly created components
 			if (newIds.length > 0) {
-				selectedComponentIds = newIds;
+				$selectedComponentIds = newIds;
 				selectedLinks = []; // Clear link selection since we have new components selected
 				selectedLink = null;
 			}
@@ -953,7 +947,7 @@
 			if (isTyping) return;
 
 			event.preventDefault();
-			selectedComponentIds = comps.map((comp) => comp.id);
+			$selectedComponentIds = comps.map((comp) => comp.id);
 		}
 
 		// Undo with Ctrl+Z
@@ -1044,17 +1038,17 @@
 		// Multi-selection with Shift key
 		if (event.shiftKey) {
 			// If already selected, remove from selection
-			if (selectedComponentIds.includes(comp.id)) {
-				selectedComponentIds = selectedComponentIds.filter(
+			if ($selectedComponentIds.includes(comp.id)) {
+				$selectedComponentIds = $selectedComponentIds.filter(
 					(id) => id !== comp.id
 				);
 			} else {
 				// Add to selection
-				selectedComponentIds = [...selectedComponentIds, comp.id];
+				$selectedComponentIds = [...$selectedComponentIds, comp.id];
 			}
-		} else if (!selectedComponentIds.includes(comp.id)) {
+		} else if (!$selectedComponentIds.includes(comp.id)) {
 			// Only replace selection if clicking on an unselected component
-			selectedComponentIds = [comp.id];
+			$selectedComponentIds = [comp.id];
 		}
 
 		// Always stop propagation to prevent background deselection
@@ -1064,7 +1058,7 @@
 	// Selection box visualizer (add it to the relative position container)
 	$: {
 		$components;
-		selectedComponentIds;
+		$selectedComponentIds;
 		updateSelectionBox();
 	}
 
@@ -1073,14 +1067,14 @@
 
 		const selectionOverlay = document.querySelector(".group-selection-box");
 
-		if (selectedComponentIds.length > 0) {
+		if ($selectedComponentIds.length > 0) {
 			// Find bounding box of all selected components in canvas space
 			let minX = Infinity;
 			let minY = Infinity;
 			let maxX = -Infinity;
 			let maxY = -Infinity;
 
-			selectedComponentIds.forEach((id) => {
+			$selectedComponentIds.forEach((id) => {
 				const comp = $components.find((c) => c.id === id);
 				if (comp) {
 					const el = document.getElementById(`comp-${id}`);
@@ -1209,10 +1203,10 @@
 
 			// If shift is not pressed, replace selection, otherwise add to it
 			if (!event.shiftKey) {
-				selectedComponentIds = newSelection;
+				$selectedComponentIds = newSelection;
 			} else {
-				selectedComponentIds = [
-					...new Set([...selectedComponentIds, ...newSelection]),
+				$selectedComponentIds = [
+					...new Set([...$selectedComponentIds, ...newSelection]),
 				];
 			}
 			console.log(selectedComponentIds);
@@ -1369,7 +1363,7 @@
 
 			if (!isOnComponent) {
 				console.log("Background clicked, deselecting");
-				selectedComponentIds = [];
+				$selectedComponentIds = [];
 				selectedLinks = [];
 				selectedLink = null;
 			}
@@ -1650,7 +1644,8 @@
 							openDropdown = null;
 						}}
 						disabled={!$currentFilename ||
-							(selectedLinks.length === 0 && selectedComponentIds.length === 0)}
+							(selectedLinks.length === 0 &&
+								$selectedComponentIds.length === 0)}
 					>
 						<span class="shortcut">Del</span> Delete Selected
 					</button>
@@ -1688,8 +1683,8 @@
 					<button
 						class="dropdown-item"
 						on:click={() => {
-							if (selectedComponentIds.length > 0) {
-								selectedComponentIds.forEach((nodeId) => {
+							if ($selectedComponentIds.length > 0) {
+								$selectedComponentIds.forEach((nodeId) => {
 									const node = $components.find((c) => c.id === nodeId);
 									if (
 										node &&
@@ -1701,7 +1696,7 @@
 							}
 							openDropdown = null;
 						}}
-						disabled={selectedComponentIds.length === 0}
+						disabled={$selectedComponentIds.length === 0}
 					>
 						<span class="shortcut">Ctrl+L</span> Auto-Layout Tree
 					</button>
@@ -1864,7 +1859,7 @@
 						y={comp.y}
 						linkedArrays={comp.linkedArrays || []}
 						name={comp.name || "Iterator"}
-						selected={selectedComponentIds.includes(comp.id)}
+						selected={$selectedComponentIds.includes(comp.id)}
 						on:nodeMouseDown={handleNodeMouseDown}
 						on:indexUpdate={handleIteratorIndexUpdate}
 						on:propertyChange={(e) => handlePropertyChange(e.detail)}
@@ -1888,7 +1883,7 @@
 						x={comp.x}
 						y={comp.y}
 						value={comp.value}
-						selected={selectedComponentIds.includes(comp.id)}
+						selected={$selectedComponentIds.includes(comp.id)}
 						on:propertyChange={(e) => handlePropertyChange(e.detail)}
 						on:nodeMouseDown={handleNodeMouseDown}
 						on:createConnectedNode={handleCreateConnectedNode}
@@ -1909,7 +1904,7 @@
 						x={comp.x}
 						y={comp.y}
 						value={comp.value}
-						selected={selectedComponentIds.includes(comp.id)}
+						selected={$selectedComponentIds.includes(comp.id)}
 						on:nodeMouseDown={handleNodeMouseDown}
 						on:propertyChange={(e) => handlePropertyChange(e.detail)}
 						on:createConnectedNode={handleCreateConnectedNode}
@@ -1931,7 +1926,7 @@
 						y={comp.y}
 						value={comp.value}
 						childCount={comp.childCount || 3}
-						selected={selectedComponentIds.includes(comp.id)}
+						selected={$selectedComponentIds.includes(comp.id)}
 						on:propertyChange={(e) => handlePropertyChange(e.detail)}
 						on:nodeMouseDown={handleNodeMouseDown}
 						on:createConnectedNode={handleCreateConnectedNode}

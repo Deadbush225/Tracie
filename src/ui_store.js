@@ -15,3 +15,5 @@ export function updateSvgRect2(svgContainer) {
 		});
 	}
 }
+
+export const selectedComponentIds = writable([]);
