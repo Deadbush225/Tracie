@@ -412,6 +412,10 @@
 	}
 
 	function handleNodeMouseDown({ detail }) {
+		mouse = detail.getNodeCenter();
+		console.log("Start Dragging Link from:", mouse);
+		console.log("Detail:", detail);
+
 		draggingLink = {
 			from: {
 				componentId: detail.componentId,
@@ -425,7 +429,7 @@
 	}
 
 	function handleMouseMove(e) {
-		mouse = { x: e.clientX, y: e.clientY };
+		mouse = { x: e.clientX - $svgRect.left, y: e.clientY - $svgRect.top };
 		const el = document.elementFromPoint(e.clientX, e.clientY);
 		if (el && el.classList.contains("node")) {
 			const compId = +el.getAttribute("data-comp-id");
@@ -1895,8 +1899,8 @@
 					<line
 						x1={fromPos.x}
 						y1={fromPos.y}
-						x2={mouse.x - $svgRect.left}
-						y2={mouse.y - $svgRect.top}
+						x2={mouse.x}
+						y2={mouse.y}
 						stroke="#1976d2"
 						stroke-width="2"
 						stroke-dasharray="6,6"
