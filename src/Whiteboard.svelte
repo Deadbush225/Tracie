@@ -870,7 +870,6 @@
 			} else if ($selectedComponentIds.length > 0) {
 				// Delete all selected components
 				deleteComponent($selectedComponentIds);
-				$selectedComponentIds = [];
 			}
 		}
 

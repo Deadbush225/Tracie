@@ -156,6 +156,7 @@ class DeleteComponentCommand {
 					!this.componentIds.includes(l.to.componentId)
 			)
 		);
+		selectedComponentIds.update(() => []);
 	}
 
 	undo() {
