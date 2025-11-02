@@ -1,5 +1,6 @@
 import { writable, get } from "svelte/store";
 import { svgRect, selectedComponentIds } from "./ui_store";
+import { tick } from "svelte";
 
 export let nextId = 10; // Start from 3 to account for the initial components
 
@@ -191,6 +192,7 @@ class MoveComponentCommand {
 				})
 			);
 		}
+		this.reloadLinks();
 	}
 
 	undo() {
@@ -202,6 +204,12 @@ class MoveComponentCommand {
 				return comp;
 			})
 		);
+		this.reloadLinks();
+	}
+
+	async reloadLinks() {
+		await tick();
+		updateLinks();
 	}
 }
 
@@ -1163,6 +1171,8 @@ export function makeSmartOrBezierPath(
 
 // Helper to update linkTable and links array with new positions
 export function updateLinks() {
+	console.log("Checking for updates in links positions...");
+
 	let changed = false;
 	get(links).forEach((link) => {
 		const fromPos = link.from.getNodeCenter();
@@ -1182,7 +1192,10 @@ export function updateLinks() {
 		}
 	});
 	// Only trigger Svelte reactivity if changed
-	if (changed) links.update((link) => [...link]);
+	if (changed) {
+		links.update((link) => [...link]);
+		console.log("Links positions updated.");
+	}
 }
 
 // The problem is that getNodeCenter returns the previous position since the internal position of the component where getNodeCenter relies is still not updated. Try calling the updatelinks after updating the component's position

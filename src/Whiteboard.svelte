@@ -544,6 +544,7 @@
 		}
 
 		updateLinks(); // Ensure links are updated immediately
+		// TODO: Make links reactive to component changes so that any change in position triggers link updates automatically
 
 		// Auto-layout tree after movement
 		if (final) {
