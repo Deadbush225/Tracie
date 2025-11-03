@@ -19,7 +19,7 @@
 	 * - Binary tree: "bottom-left", "bottom-right"
 	 * - Diagonal: "top-left", "top-right"
 	 */
-	import { createEventDispatcher, onMount } from "svelte";
+	import { createEventDispatcher, onMount, onDestroy } from "svelte";
 	import { get } from "svelte/store";
 	import { svgRect } from "../src/ui_store";
 	export let id;
@@ -95,6 +95,11 @@
 	});
 
 	function getNodeCenter(side) {
+		// Guard against null container (component not mounted or destroyed)
+		if (!container) {
+			// Return fallback position based on last known x,y
+			return { x: x + 60, y: y + 30 }; // center of default 120x60
+		}
 		rect = container.getBoundingClientRect();
 		const width = rect ? rect.width : 120;
 		const height = rect ? rect.height : 60;
@@ -155,6 +160,16 @@
 	$: if (connectionPoints) {
 		connectionPoints.forEach(registerNode);
 	}
+
+	onDestroy(() => {
+		// Remove registered callbacks to avoid stale references
+		if (window.__getNodeCenterMap) {
+			connectionPoints.forEach((side) => {
+				const key = `${id}-${side}`;
+				delete window.__getNodeCenterMap[key];
+			});
+		}
+	});
 </script>
 
 <div
