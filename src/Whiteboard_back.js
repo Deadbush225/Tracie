@@ -159,15 +159,19 @@ class DeleteComponentCommand {
 		selectedComponentIds.update(() => []);
 	}
 
-	undo() {
+	async undo() {
+		// Restore components first
 		components.update((comps) => [...comps, ...this.components]);
-		links.update((ls) => [...ls, ...this.affectedLinks]);
-		// After restoring components and links, mark the restored components as selected
-		const restoredIds = this.components.map((c) => c.id);
 
-		setTimeout(() => {
-			selectedComponentIds.update(() => [...restoredIds]);
-		}, 50);
+		// Wait for Svelte to mount the components and their DOM nodes
+		await tick();
+
+		// Now restore links (this will trigger updateLinkEndpoints via subscription)
+		links.update((ls) => [...ls, ...this.affectedLinks]);
+
+		// Mark the restored components as selected
+		const restoredIds = this.components.map((c) => c.id);
+		selectedComponentIds.update(() => [...restoredIds]);
 	}
 }
 
@@ -379,7 +383,13 @@ class DeleteLinkCommand {
 		this.notifyLinkDeleted();
 	}
 
-	undo() {
+	async undo() {
+		console.log("Restoring link:", this.link);
+
+		// Wait a tick to ensure any component restoration is complete
+		await tick();
+
+		// Restore the link
 		links.update((ls) => [...ls, this.link]);
 
 		// Add back to linkedArrays
@@ -649,9 +659,16 @@ export function createLink(fromNode, toNode) {
 	}
 
 	// Create the link with the adjusted color
+	// Store only IDs and sides - positions are queried from window.__getNodeCenterMap
 	const link = {
-		from: fromNode,
-		to: toNode,
+		from: {
+			componentId: fromNode.componentId,
+			side: fromNode.side,
+		},
+		to: {
+			componentId: toNode.componentId,
+			side: toNode.side,
+		},
 		color: shade > 0 ? adjustBrightness(baseColor, -shade) : baseColor,
 	};
 
@@ -689,6 +706,22 @@ function getComponentType(id) {
 
 export function deleteLink(link) {
 	executeCommand(new DeleteLinkCommand(link));
+}
+
+// Helper to get node center from the global map (single source of truth)
+function getNodeCenterFromMap(componentId, side) {
+	const key = `${componentId}-${side}`;
+	const getter = window.__getNodeCenterMap?.[key];
+	if (!getter) {
+		console.warn(`No getNodeCenter registered for ${key}`);
+		return null;
+	}
+	try {
+		return getter();
+	} catch (error) {
+		console.warn(`Error calling getNodeCenter for ${key}:`, error);
+		return null;
+	}
 }
 
 // Function to calculate distance between two points
@@ -1176,8 +1209,13 @@ export function updateLinks() {
 
 	let changed = false;
 	get(links).forEach((link) => {
-		const fromPos = link.from.getNodeCenter();
-		const toPos = link.to.getNodeCenter();
+		// Query positions from the global map (single source of truth)
+		const fromPos = getNodeCenterFromMap(link.from.componentId, link.from.side);
+		const toPos = getNodeCenterFromMap(link.to.componentId, link.to.side);
+
+		// Skip if positions not available
+		if (!fromPos || !toPos) return;
+
 		// Only update if positions have changed
 		if (
 			link.from.x !== fromPos.x ||
@@ -1206,12 +1244,17 @@ export function updateLinks() {
 // Function to update linkEndpoints based on current links
 export function updateLinkEndpoints() {
 	const linksList = get(links);
+	console.log("Updating link endpoints for", linksList.length, "links");
+
 	linkEndpoints.set(
 		linksList.map((link) => {
-			const fromPos = link.from.getNodeCenter
-				? link.from.getNodeCenter()
-				: null;
-			const toPos = link.to.getNodeCenter ? link.to.getNodeCenter() : null;
+			// Query positions from the global map (single source of truth)
+			const fromPos = getNodeCenterFromMap(
+				link.from.componentId,
+				link.from.side
+			);
+			const toPos = getNodeCenterFromMap(link.to.componentId, link.to.side);
+
 			const fromSide = link.from.side;
 			const toSide = link.to.side;
 			const path =

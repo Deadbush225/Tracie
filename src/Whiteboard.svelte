@@ -412,11 +412,11 @@
 	function handleNodeMouseDown({ detail }) {
 		mouse = detail.getNodeCenter();
 
+		// Store only componentId and side - getNodeCenter is in window.__getNodeCenterMap
 		draggingLink = {
 			from: {
 				componentId: detail.componentId,
 				side: detail.side,
-				getNodeCenter: detail.getNodeCenter,
 			},
 		};
 		hoveredNode = null;
@@ -2013,39 +2013,44 @@
 					/>
 				{/if}
 			{/each}
-			{#if draggingLink && draggingLink.from.getNodeCenter}
-				{@const fromPos = draggingLink.from.getNodeCenter()}
-				{#if hoveredNode}
-					{@const toPos = hoveredNode.getNodeCenter()}
-					<path
-						d={makeSmartOrBezierPath(
-							fromPos.x,
-							fromPos.y,
-							toPos.x,
-							toPos.y,
-							draggingLink.from.side,
-							hoveredNode.side,
-							draggingLink.from.componentId,
-							hoveredNode.componentId
-						)}
-						stroke="#1976d2"
-						stroke-width="2"
-						stroke-dasharray="4"
-						fill="none"
-						marker-end="url(#arrowhead-dragging)"
-					/>
-				{:else}
-					<!-- Show temp dashed line from node to mouse -->
-					<line
-						x1={fromPos.x}
-						y1={fromPos.y}
-						x2={mouse.x}
-						y2={mouse.y}
-						stroke="#1976d2"
-						stroke-width="2"
-						stroke-dasharray="6,6"
-						fill="none"
-					/>
+			{#if draggingLink}
+				{@const fromPos =
+					window.__getNodeCenterMap?.[
+						`${draggingLink.from.componentId}-${draggingLink.from.side}`
+					]?.()}
+				{#if fromPos}
+					{#if hoveredNode}
+						{@const toPos = hoveredNode.getNodeCenter()}
+						<path
+							d={makeSmartOrBezierPath(
+								fromPos.x,
+								fromPos.y,
+								toPos.x,
+								toPos.y,
+								draggingLink.from.side,
+								hoveredNode.side,
+								draggingLink.from.componentId,
+								hoveredNode.componentId
+							)}
+							stroke="#1976d2"
+							stroke-width="2"
+							stroke-dasharray="4"
+							fill="none"
+							marker-end="url(#arrowhead-dragging)"
+						/>
+					{:else}
+						<!-- Show temp dashed line from node to mouse -->
+						<line
+							x1={fromPos.x}
+							y1={fromPos.y}
+							x2={mouse.x}
+							y2={mouse.y}
+							stroke="#1976d2"
+							stroke-width="2"
+							stroke-dasharray="6,6"
+							fill="none"
+						/>
+					{/if}
 				{/if}
 			{/if}
 		</svg>
