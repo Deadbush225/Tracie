@@ -17,3 +17,6 @@ export function updateSvgRect2(svgContainer) {
 }
 
 export const selectedComponentIds = writable([]);
+
+export const selectedLinks = writable([]);
+export const selectedLink = writable(null);

@@ -18,6 +18,7 @@
 		createLink,
 		deleteLink,
 		deleteComponent,
+		deleteLinkAndComponents,
 		moveComponent,
 		moveMultipleComponents,
 		undo,
@@ -33,10 +34,17 @@
 		addNodeByType,
 		optimizeLinkPath,
 		optimizeAllLinks,
+		deleteComponents,
 	} from "./Whiteboard_back";
 
 	import { onMount, setContext, tick } from "svelte";
-	import { updateSvgRect2, svgRect, selectedComponentIds } from "./ui_store";
+	import {
+		updateSvgRect2,
+		svgRect,
+		selectedComponentIds,
+		selectedLink,
+		selectedLinks,
+	} from "./ui_store";
 	import { writable } from "svelte/store";
 	import FileBrowser from "../components/FileBrowser.svelte";
 	import { user, authLoading, signInWithGoogle, signOutUser } from "./firebase";
@@ -58,9 +66,9 @@
 
 	let hoveredNode = null;
 
-	// Change from single selectedLink to array model
-	let selectedLinks = [];
-	let selectedLink = null; // Keep for backward compatibility
+	// Change from single $selectedLink to array model
+	// let $selectedLinks = [];
+	// let $selectedLink = null; // Keep for backward compatibility
 
 	// Add component selection functionality
 
@@ -773,32 +781,32 @@
 
 		// Multi-selection with Shift key
 		if (event.shiftKey) {
-			if (selectedLinks.includes(link)) {
+			if ($selectedLinks.includes(link)) {
 				// If already selected, remove it
-				selectedLinks = selectedLinks.filter((l) => l !== link);
-				if (selectedLink === link) selectedLink = null;
+				$selectedLinks = $selectedLinks.filter((l) => l !== link);
+				if ($selectedLink === link) $selectedLink = null;
 			} else {
 				// Add to selection
-				selectedLinks = [...selectedLinks, link];
-				selectedLink = link; // Keep the legacy behavior of highlighting the last clicked link
+				$selectedLinks = [...$selectedLinks, link];
+				$selectedLink = link; // Keep the legacy behavior of highlighting the last clicked link
 			}
 		} else {
 			// Single selection
-			selectedLinks = [link];
-			selectedLink = link;
+			$selectedLinks = [link];
+			$selectedLink = link;
 			// Clear component selection when selecting link without shift
 			$selectedComponentIds = [];
 		}
 	}
-
-	function deleteSelectedLinks() {
-		if (selectedLinks.length > 0) {
+	// TODO: move to the backend
+	function deleteselectedLinks() {
+		if ($selectedLinks.length > 0) {
 			// Delete each link individually to track in history
-			for (const link of selectedLinks) {
+			for (const link of $selectedLinks) {
 				deleteLink(link);
 			}
-			selectedLinks = [];
-			selectedLink = null;
+			$selectedLinks = [];
+			$selectedLink = null;
 		}
 	}
 
@@ -865,14 +873,15 @@
 			if (isTyping) return;
 
 			// Delete links first if any are selected
-			if (selectedLinks.length > 0) {
-				deleteSelectedLinks();
-			}
+			// if ($selectedLinks.length > 0) {
+			// 	deleteSelectedLinks();
+			// }
 
-			if ($selectedComponentIds.length > 0) {
-				// Delete all selected components
-				deleteComponent($selectedComponentIds);
-			}
+			// if ($selectedComponentIds.length > 0) {
+			// 	// Delete all selected components
+			// 	deleteComponents($selectedComponentIds);
+			// }
+			deleteLinkAndComponents($selectedComponentIds, $selectedLinks);
 		}
 
 		// Duplicate selected components and links with Ctrl+D
@@ -898,11 +907,11 @@
 			}
 
 			// Then duplicate any selected links
-			if (selectedLinks.length > 0) {
+			if ($selectedLinks.length > 0) {
 				links.update((current) => {
 					const newLinks = [...current];
 
-					for (const link of selectedLinks) {
+					for (const link of $selectedLinks) {
 						// Only duplicate links if both components are selected and duplicated
 						const fromId = link.from.componentId;
 						const toId = link.to.componentId;
@@ -938,8 +947,8 @@
 			// Select the newly created components
 			if (newIds.length > 0) {
 				$selectedComponentIds = newIds;
-				selectedLinks = []; // Clear link selection since we have new components selected
-				selectedLink = null;
+				$selectedLinks = []; // Clear link selection since we have new components selected
+				$selectedLink = null;
 			}
 		}
 
@@ -980,9 +989,9 @@
 
 			event.preventDefault();
 
-			if (selectedLinks.length > 0) {
+			if ($selectedLinks.length > 0) {
 				// Optimize only selected links
-				selectedLinks.forEach((link) => optimizeLinkPath(link));
+				$selectedLinks.forEach((link) => optimizeLinkPath(link));
 			} else {
 				// Optimize all links if none are selected
 				optimizeAllLinks();
@@ -1343,17 +1352,17 @@
 
 			// Apply selection respecting Shift key behavior
 			if (!event.shiftKey) {
-				selectedLinks = newLinkSelection;
+				$selectedLinks = newLinkSelection;
 			} else {
 				// merge unique
-				const merged = [...selectedLinks, ...newLinkSelection];
-				selectedLinks = Array.from(new Set(merged));
+				const merged = [...$selectedLinks, ...newLinkSelection];
+				$selectedLinks = Array.from(new Set(merged));
 			}
 
-			// Maintain legacy single selectedLink reference (last selected)
-			selectedLink =
-				selectedLinks.length > 0
-					? selectedLinks[selectedLinks.length - 1]
+			// Maintain legacy single $selectedLink reference (last selected)
+			$selectedLink =
+				$selectedLinks.length > 0
+					? $selectedLinks[$selectedLinks.length - 1]
 					: null;
 		} else {
 			// Check if the click was on a component or element before deselecting
@@ -1366,8 +1375,8 @@
 			if (!isOnComponent) {
 				console.log("Background clicked, deselecting");
 				$selectedComponentIds = [];
-				selectedLinks = [];
-				selectedLink = null;
+				$selectedLinks = [];
+				$selectedLink = null;
 			}
 		}
 
@@ -1642,11 +1651,11 @@
 					<button
 						class="dropdown-item"
 						on:click={() => {
-							deleteSelectedLinks();
+							delete$selectedLinks();
 							openDropdown = null;
 						}}
 						disabled={!$currentFilename ||
-							(selectedLinks.length === 0 &&
+							($selectedLinks.length === 0 &&
 								$selectedComponentIds.length === 0)}
 					>
 						<span class="shortcut">Del</span> Delete Selected
@@ -1669,8 +1678,8 @@
 					<button
 						class="dropdown-item"
 						on:click={() => {
-							if (selectedLinks.length > 0) {
-								selectedLinks.forEach((link) => optimizeLinkPath(link));
+							if ($selectedLinks.length > 0) {
+								$selectedLinks.forEach((link) => optimizeLinkPath(link));
 							} else {
 								optimizeAllLinks();
 							}
@@ -1678,7 +1687,7 @@
 						}}
 					>
 						<span class="shortcut">Ctrl+O</span>
-						{selectedLinks.length > 0
+						{$selectedLinks.length > 0
 							? "Optimize Selected Links"
 							: "Optimize All Links"}
 					</button>
@@ -1998,11 +2007,11 @@
 					/>
 					<path
 						d={path}
-						stroke={selectedLinks.includes(link) ? "#d32f2f" : link.color}
-						stroke-width={selectedLinks.includes(link) ? 4 : 2}
-						stroke-dasharray={selectedLinks.includes(link) ? "6,3" : "none"}
+						stroke={$selectedLinks.includes(link) ? "#d32f2f" : link.color}
+						stroke-width={$selectedLinks.includes(link) ? 4 : 2}
+						stroke-dasharray={$selectedLinks.includes(link) ? "6,3" : "none"}
 						fill="none"
-						marker-end={selectedLinks.includes(link)
+						marker-end={$selectedLinks.includes(link)
 							? "url(#arrowhead-selected)"
 							: "url(#arrowhead)"}
 						style="pointer-events:stroke"

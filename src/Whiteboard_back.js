@@ -366,6 +366,21 @@ function isArrayType(type) {
 	return type === "array" || type === "2darray";
 }
 
+class DeleteLinksCommand {
+	constructor(links) {
+		this.links = links;
+		this.deleteLinkCommands = links.map((link) => new DeleteLinkCommand(link));
+	}
+
+	execute() {
+		this.deleteLinkCommands.forEach((cmd) => cmd.execute());
+	}
+
+	undo() {
+		this.deleteLinkCommands.forEach((cmd) => cmd.undo());
+	}
+}
+
 // Delete Link Command
 class DeleteLinkCommand {
 	constructor(link) {
@@ -484,6 +499,26 @@ class DeleteLinkCommand {
 	}
 }
 
+// Delete Link and Components Command
+class DeleteLinkAndComponentsCommand {
+	constructor(componentIds, links) {
+		this.componentIds = componentIds;
+		this.links = links;
+		this.deleteComponent = new DeleteComponentCommand(this.componentIds);
+		this.deleteLink = new DeleteLinksCommand(this.links);
+	}
+
+	execute() {
+		this.deleteComponent.execute();
+		this.deleteLink.execute();
+	}
+
+	undo() {
+		this.deleteComponent.undo();
+		this.deleteLink.undo();
+	}
+}
+
 // Duplicate Component Command
 class DuplicateComponentCommand {
 	constructor(originalId, newComponent) {
@@ -587,6 +622,12 @@ export function deleteComponents(ids) {
 	}
 	if (ids.length === 0) return;
 	executeCommand(new DeleteComponentCommand(ids));
+}
+
+export function deleteLinkAndComponents(ids, links) {
+	if (ids.length === 0 && links.length === 0) return;
+
+	executeCommand(new DeleteLinkAndComponentsCommand(ids, links));
 }
 
 export function moveComponent(id, dx, dy) {
@@ -702,6 +743,10 @@ function adjustBrightness(hex, percent) {
 function getComponentType(id) {
 	const comp = get(components).find((c) => c.id === id);
 	return comp ? comp.type : null;
+}
+
+export function deleteLinks(links) {
+	executeCommand(new DeleteLinksCommand(links));
 }
 
 export function deleteLink(link) {
