@@ -111,15 +111,19 @@
 		let _y = y;
 
 		// Calculate common positions
-		const centerX = _x + width / 2;
-		const centerY = _y + height / 2;
-		const leftEdge = _x - CONNECTION_POINT_OFFSET / 2;
-		const rightEdge = _x + width + CONNECTION_POINT_OFFSET / 2;
-		const topEdge = _y - CONNECTION_POINT_OFFSET / 2;
-		const bottomEdge = _y + height + CONNECTION_POINT_OFFSET / 2;
-		const leftThird = _x + width * 0.3;
-		const rightThird = _x + width * 0.7;
-		const upperQuarter = _y + height * 0.25;
+		const z = typeof window !== "undefined" && window.zoom ? window.zoom : 1;
+		const invZ = z === 0 ? 1 : 1 / z;
+		// center/edge calculations should factor in current zoom (use division by zoom)
+		const centerX = _x + (width / 2) * invZ;
+		const centerY = _y + (height / 2) * invZ;
+		const halfOffset = (CONNECTION_POINT_OFFSET / 2) * invZ;
+		const leftEdge = _x - halfOffset;
+		const rightEdge = _x + width * invZ + halfOffset;
+		const topEdge = _y - halfOffset;
+		const bottomEdge = _y + height * invZ + halfOffset;
+		const leftThird = _x + width * 0.3 * invZ;
+		const rightThird = _x + width * 0.7 * invZ;
+		const upperQuarter = _y + height * 0.25 * invZ;
 
 		// Support custom connection point positions
 		switch (side) {

@@ -75,10 +75,10 @@
 	// Dropdown menu states
 	let openDropdown = null;
 
-	// Infinite canvas pan and zoom
+	// Infinite canvas pan and window.zoom
 	let panX = 0;
 	let panY = 0;
-	let zoom = 1;
+	window.zoom = 1;
 	let isPanning = false;
 	let panStartX = 0;
 	let panStartY = 0;
@@ -418,7 +418,7 @@
 	}
 
 	function handleNodeMouseDown({ detail }) {
-		mouse = detail.getNodeCenter();
+		mouse = window.__getNodeCenterMap[`${detail.componentId}-${detail.side}`]();
 
 		// Store only componentId and side - getNodeCenter is in window.__getNodeCenterMap
 		draggingLink = {
@@ -433,7 +433,12 @@
 	}
 
 	function handleMouseMove(e) {
-		mouse = { x: e.clientX - $svgRect.left, y: e.clientY - $svgRect.top };
+		mouse = {
+			// Convert screen coordinates -> canvas coordinates by removing SVG container offset,
+			// subtracting current pan, and dividing by the zoom factor.
+			x: (e.clientX - $svgRect.left - panX) / window.zoom,
+			y: (e.clientY - $svgRect.top - panY) / window.zoom,
+		};
 		const el = document.elementFromPoint(e.clientX, e.clientY);
 		if (el && el.classList.contains("node")) {
 			const compId = +el.getAttribute("data-comp-id");
@@ -864,7 +869,7 @@
 			event.preventDefault();
 			panX = 0;
 			panY = 0;
-			zoom = 1;
+			window.zoom = 1;
 		}
 
 		// Delete component/link
@@ -1133,18 +1138,18 @@
 			const containerRect = svgContainer.getBoundingClientRect();
 
 			// Convert screen coordinates to canvas coordinates
-			// Transform: translate(panX, panY) scale(zoom)
-			// So: screen = canvas * zoom + pan
-			// Therefore: canvas = (screen - pan) / zoom
+			// Transform: translate(panX, panY) scale(window.zoom)
+			// So: screen = canvas * window.zoom + pan
+			// Therefore: canvas = (screen - pan) / window.zoom
 			const screenX = event.clientX - containerRect.left;
 			const screenY = event.clientY - containerRect.top;
-			const canvasX = (screenX - panX) / zoom;
-			const canvasY = (screenY - panY) / zoom;
+			const canvasX = (screenX - panX) / window.zoom;
+			const canvasY = (screenY - panY) / window.zoom;
 
 			console.log("=== SELECTION START ===");
 			console.log(`Screen: (${screenX.toFixed(1)}, ${screenY.toFixed(1)})`);
 			console.log(
-				`Pan: (${panX.toFixed(1)}, ${panY.toFixed(1)}), Zoom: ${zoom.toFixed(2)}`
+				`Pan: (${panX.toFixed(1)}, ${panY.toFixed(1)}), Zoom: ${window.zoom.toFixed(2)}`
 			);
 			console.log(`Canvas: (${canvasX.toFixed(1)}, ${canvasY.toFixed(1)})`);
 
@@ -1172,8 +1177,8 @@
 			// Update selection box dimensions
 			const screenX = event.clientX - containerRect.left;
 			const screenY = event.clientY - containerRect.top;
-			const canvasX = (screenX - panX) / zoom;
-			const canvasY = (screenY - panY) / zoom;
+			const canvasX = (screenX - panX) / window.zoom;
+			const canvasY = (screenY - panY) / window.zoom;
 
 			selectionBox = {
 				x: Math.min(selectionStartPos.x, canvasX),
@@ -1385,27 +1390,27 @@
 		selectionStartPos = null;
 	}
 
-	// Pan and zoom handlers
+	// Pan and window.zoom handlers
 	function handleWheel(event) {
 		event.preventDefault();
 
 		if (event.ctrlKey) {
 			// Zoom with Ctrl+Wheel
 			const zoomFactor = event.deltaY > 0 ? 0.9 : 1.1;
-			const newZoom = Math.max(0.1, Math.min(3, zoom * zoomFactor));
+			const newZoom = Math.max(0.1, Math.min(3, window.zoom * zoomFactor));
 
 			// Zoom towards mouse position
 			const mouseX = event.clientX;
 			const mouseY = event.clientY - 40; // Account for menubar
 
-			// Adjust pan to zoom towards mouse
+			// Adjust pan to window.zoom towards mouse
 			const dx = mouseX - panX;
 			const dy = mouseY - panY;
 
-			panX = mouseX - dx * (newZoom / zoom);
-			panY = mouseY - dy * (newZoom / zoom);
+			panX = mouseX - dx * (newZoom / window.zoom);
+			panY = mouseY - dy * (newZoom / window.zoom);
 
-			zoom = newZoom;
+			window.zoom = newZoom;
 		} else {
 			// Pan with wheel
 			panX -= event.deltaX;
@@ -1770,13 +1775,13 @@
 		<defs>
 			<pattern
 				id="grid"
-				width={20 * zoom}
-				height={20 * zoom}
+				width={20 * window.zoom}
+				height={20 * window.zoom}
 				patternUnits="userSpaceOnUse"
 			>
-				<rect width={20 * zoom} height={20 * zoom} fill="none" />
+				<rect width={20 * window.zoom} height={20 * window.zoom} fill="none" />
 				<path
-					d="M {20 * zoom} 0 L 0 0 0 {20 * zoom}"
+					d="M {20 * window.zoom} 0 L 0 0 0 {20 * window.zoom}"
 					fill="none"
 					stroke="#e0e0e0"
 					stroke-width="0.5"
@@ -1786,9 +1791,9 @@
 		<rect width="100%" height="100%" fill="url(#grid)" />
 	</svg>
 
-	<!-- Canvas content with pan and zoom transform -->
+	<!-- Canvas content with pan and window.zoom transform -->
 	<div
-		style="transform: translate({panX}px, {panY}px) scale({zoom}); transform-origin: 0 0; width: 5000px; height: 5000px; position:relative;"
+		style="transform: translate({panX}px, {panY}px) scale({window.zoom}); transform-origin: 0 0; width: 5000px; height: 5000px; position:relative;"
 	>
 		{#each comps as comp (comp.id)}
 			{#if comp.type === "array"}
@@ -2078,7 +2083,7 @@
 
 	<!-- Zoom and pan controls indicator -->
 	<div class="canvas-info">
-		<div>Zoom: {(zoom * 100).toFixed(0)}%</div>
+		<div>Zoom: {(window.zoom * 100).toFixed(0)}%</div>
 		<!-- <div>Pan: X: {panX}px, Y: {panY}px</div> -->
 		<div style="font-size: 11px; color: #666; margin-top: 4px;">
 			Scroll: Pan | Ctrl+Scroll: Zoom | Middle Click: Pan | Ctrl+0: Reset
