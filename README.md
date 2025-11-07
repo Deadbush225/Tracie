@@ -1,11 +1,20 @@
-<center>
-<img src="./public/Tracie.png" style="width: 4em"></img>
-</center>
+<div align="center">
+  <img src="./public/Tracie.png" style="width: 4em"></img>
+</div>
+
 </br>
 
-# Tracie - Interactive Algorithm Visualization Toolkit
+# Tracie - Interactive Algorithm Visualization
 
 Tracie is an interactive whiteboard tool designed to help visualize data structures and algorithms. It allows you to create, manipulate, and connect various data structure components to trace through algorithms step-by-step.
+
+## Getting Started
+
+### Live Preview
+
+Try out Tracie: [Live Demo](https://tracie-viz.vercel.app/)
+
+Read the detailed docs [here](./docs/How%20to%20use.md)
 
 ## Features
 
@@ -34,14 +43,6 @@ Tracie is an interactive whiteboard tool designed to help visualize data structu
 - Open previously saved files
 - Export diagrams as PNG images
 - Filename display with unsaved changes indicator
-
-## Getting Started
-
-### Live Preview
-
-Try out Tracie: [Live Demo](https://tracie-viz.vercel.app/)
-
-Read the detailed docs [here](./docs/How%20to%20use.md)
 
 ## Development
 
@@ -74,3 +75,4 @@ MIT License
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
