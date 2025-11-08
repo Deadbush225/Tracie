@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	/**
 	 * ComponentBox - Reusable wrapper for all components with connection points
 	 *
@@ -29,7 +29,16 @@
 	export let hoveredNode = null;
 	export let deletable = true;
 	// Array of connection point names (e.g., ["top", "bottom-left", "bottom-right"])
-	export let connectionPoints = ["top", "bottom", "left", "right"];
+	export let connectionPoints: (
+		| "top"
+		| "bottom"
+		| "left"
+		| "right"
+		| "bottom-left"
+		| "bottom-right"
+		| "top-left"
+		| "top-right"
+	)[] = ["top", "bottom", "left", "right"];
 	// Border radius for shape customization (default 6px for backwards compatibility)
 	export let borderRadius = "6px";
 	// Border color (default #333)
