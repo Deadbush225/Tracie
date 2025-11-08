@@ -1,10 +1,21 @@
+<!-- PROJECT LOGO -->
+<br />
 <div align="center">
-  <img src="./public/Tracie.png" style="width: 4em; margin-bottom: 0.5em"></img>
-    </br>
-  <p style="font-size:2em; font-weight:bold; margin-bottom:0">Tracie</p>
-  <p style="font-size:1.2em; font-weight:500; margin-bottom:0.2em">Interactive Algorithm Visualization</p>
-<p style="border-bottom: 1px solid white; width: 15em; height: 1px; margin: 10px 0 !important;"></p>
-  <p>Tracie is an interactive whiteboard tool designed to help visualize data structures and algorithms.
+  <img src="./public/Tracie.png" alt="Logo" width="80" height="80">
+
+  <h3 align="center">Tracie</h3>
+
+  <p align="center">
+    An Interactive Visualization tool for Algorithms!
+    <br />
+    <a href="./docs/How%20to%20use.md"><strong>Explore the docs »</strong></a>
+    <br />
+    <br />
+    <a href="https://tracie-viz.vercel.app/">View Demo</a>
+    &middot;
+    <a href="https://github.com/Deadbush225/Tracie/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
+    &middot;
+    <a href="https://github.com/Deadbush225/Tracie/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
   </p>
 </div>
 
@@ -68,3 +79,4 @@ AGPL-3.0 License
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
