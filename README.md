@@ -50,7 +50,7 @@ Read the detailed docs [here](./docs/How%20to%20use.md)
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/tracie.git
+git clone https://github.com/Deadbush225/Tracie.git
 
 # Navigate to the project directory
 cd tracie
@@ -70,9 +70,8 @@ npm run build
 
 ## License
 
-MIT License
+AGPL-3.0 License
 
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
-
