@@ -1,5 +1,5 @@
 import { writable, get } from "svelte/store";
-import { svgRect, selectedComponentIds } from "./ui_store";
+import { svgRect, selectedComponentIds, nodeCenterMap } from "./ui_store";
 import { tick } from "svelte";
 
 export let nextId = 10; // Start from 3 to account for the initial components
@@ -54,6 +54,12 @@ if (typeof window !== "undefined") {
 
 	// Expose the raw Svelte store for advanced inspection/manipulation
 	window.__componentsStore = components;
+
+	window.listNodeCenters = () => {
+		const centers = get(nodeCenterMap);
+		console.log("Node Center Map:", centers);
+		return centers;
+	};
 }
 
 /* ---------------------------------------------------------------- */
@@ -700,7 +706,7 @@ export function createLink(fromNode, toNode) {
 	}
 
 	// Create the link with the adjusted color
-	// Store only IDs and sides - positions are queried from window.__getNodeCenterMap
+	// Store only IDs and sides - positions are queried from nodeCenterMap
 	const link = {
 		from: {
 			componentId: fromNode.componentId,
@@ -756,7 +762,7 @@ export function deleteLink(link) {
 // Helper to get node center from the global map (single source of truth)
 function getNodeCenterFromMap(componentId, side) {
 	const key = `${componentId}-${side}`;
-	const getter = window.__getNodeCenterMap?.[key];
+	const getter = get(nodeCenterMap)[key];
 	if (!getter) {
 		console.warn(`No getNodeCenter registered for ${key}`);
 		return null;
@@ -796,7 +802,7 @@ function getConnectionPoints(componentId) {
 	const points = {};
 
 	sides.forEach((side) => {
-		const getNodeCenter = window.__getNodeCenterMap?.[`${componentId}-${side}`];
+		const getNodeCenter = nodeCenterMap?.[`${componentId}-${side}`];
 		if (getNodeCenter) {
 			points[side] = getNodeCenter();
 		}
@@ -866,15 +872,14 @@ export function optimizeLinkPath(link) {
 							...l.from,
 							side: bestFromSide,
 							getNodeCenter:
-								window.__getNodeCenterMap?.[`${fromId}-${bestFromSide}`] ||
+								nodeCenterMap?.[`${fromId}-${bestFromSide}`] ||
 								l.from.getNodeCenter,
 						},
 						to: {
 							...l.to,
 							side: bestToSide,
 							getNodeCenter:
-								window.__getNodeCenterMap?.[`${toId}-${bestToSide}`] ||
-								l.to.getNodeCenter,
+								nodeCenterMap?.[`${toId}-${bestToSide}`] || l.to.getNodeCenter,
 						},
 					};
 				}

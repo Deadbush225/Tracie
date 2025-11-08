@@ -44,6 +44,7 @@
 		selectedComponentIds,
 		selectedLink,
 		selectedLinks,
+		nodeCenterMap,
 	} from "./ui_store";
 	import { writable } from "svelte/store";
 	import FileBrowser from "../components/FileBrowser.svelte";
@@ -199,7 +200,7 @@
 
 		// Use the global getNodeCenterMap for the source node if available
 		const sourceGetNodeCenter =
-			window.__getNodeCenterMap?.[`${sourceId}-${fromSide}`] ||
+			$nodeCenterMap?.[`${sourceId}-${fromSide}`] ||
 			(() => {
 				// Fallback implementation if map doesn't exist
 				const sourceEl = document.getElementById(`comp-${sourceId}`);
@@ -254,7 +255,7 @@
 			setTimeout(() => {
 				// Try to get the registered getNodeCenter from the global map
 				const registeredTargetGetNodeCenter =
-					window.__getNodeCenterMap?.[`${newNode.id}-${toSide}`];
+					$nodeCenterMap?.[`${newNode.id}-${toSide}`];
 
 				createLink(
 					{
@@ -418,9 +419,10 @@
 	}
 
 	function handleNodeMouseDown({ detail }) {
-		mouse = window.__getNodeCenterMap[`${detail.componentId}-${detail.side}`]();
+		mouse = $nodeCenterMap[`${detail.componentId}-${detail.side}`]();
+		console.log("Starting link from node at:", mouse);
 
-		// Store only componentId and side - getNodeCenter is in window.__getNodeCenterMap
+		// Store only componentId and side - getNodeCenter is in nodeCenterMap
 		draggingLink = {
 			from: {
 				componentId: detail.componentId,
@@ -439,19 +441,20 @@
 			x: (e.clientX - $svgRect.left - panX) / window.zoom,
 			y: (e.clientY - $svgRect.top - panY) / window.zoom,
 		};
+		console.log("Mouse Move:", mouse);
 		const el = document.elementFromPoint(e.clientX, e.clientY);
 		if (el && el.classList.contains("node")) {
 			const compId = +el.getAttribute("data-comp-id");
 			const side = el.getAttribute("data-side");
 			if (
 				compId !== draggingLink.from.componentId &&
-				window.__getNodeCenterMap &&
-				window.__getNodeCenterMap[`${compId}-${side}`]
+				$nodeCenterMap &&
+				$nodeCenterMap[`${compId}-${side}`]
 			) {
 				hoveredNode = {
 					componentId: compId,
 					side,
-					getNodeCenter: window.__getNodeCenterMap[`${compId}-${side}`],
+					getNodeCenter: $nodeCenterMap[`${compId}-${side}`],
 				};
 				return;
 			}
@@ -2044,7 +2047,7 @@
 			{/each}
 			{#if draggingLink}
 				{@const fromPos =
-					window.__getNodeCenterMap?.[
+					$nodeCenterMap?.[
 						`${draggingLink.from.componentId}-${draggingLink.from.side}`
 					]?.()}
 				{#if fromPos}

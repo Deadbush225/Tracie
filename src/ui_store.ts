@@ -20,3 +20,4 @@ export const selectedComponentIds = writable([]);
 
 export const selectedLinks = writable([]);
 export const selectedLink = writable(null);
+export const nodeCenterMap = writable({});

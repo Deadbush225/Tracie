@@ -21,7 +21,7 @@
 	 */
 	import { createEventDispatcher, onMount, onDestroy } from "svelte";
 	import { get } from "svelte/store";
-	import { svgRect } from "../src/ui_store";
+	import { svgRect, nodeCenterMap } from "../src/ui_store";
 	export let id;
 	export let x = 0;
 	export let y = 0;
@@ -160,8 +160,10 @@
 	}
 
 	function registerNode(side) {
-		if (!window.__getNodeCenterMap) window.__getNodeCenterMap = {};
-		window.__getNodeCenterMap[`${id}-${side}`] = () => getNodeCenter(side);
+		nodeCenterMap.update((map) => {
+			map[`${id}-${side}`] = () => getNodeCenter(side);
+			return map;
+		});
 	}
 
 	onMount(() => {
@@ -176,12 +178,13 @@
 
 	onDestroy(() => {
 		// Remove registered callbacks to avoid stale references
-		if (window.__getNodeCenterMap) {
+		nodeCenterMap.update((map) => {
 			connectionPoints.forEach((side) => {
-				const key = `${id}-${side}`;
-				delete window.__getNodeCenterMap[key];
+				//remove map[` ${id}-${side}`];
+				delete map[`${id}-${side}`];
 			});
-		}
+			return map;
+		});
 	});
 </script>
 

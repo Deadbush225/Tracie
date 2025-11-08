@@ -7,6 +7,7 @@ import {
 	deleteFile,
 	listFileNames,
 } from "./firebase";
+import { nodeCenterMap } from "./ui_store";
 import { toPng } from "html-to-image";
 import { writable } from "svelte/store";
 
@@ -64,28 +65,17 @@ export function loadState(data) {
 				componentId: link.from.componentId,
 				side: link.from.side,
 				getNodeCenter: () => {
-					if (window.__getNodeCenterMap) {
-						const fn =
-							window.__getNodeCenterMap[
-								`${link.from.componentId}-${link.from.side}`
-							];
-						return fn ? fn() : { x: 0, y: 0 };
-					}
-					return { x: 0, y: 0 };
+					const fn =
+						nodeCenterMap[`${link.from.componentId}-${link.from.side}`];
+					return fn ? fn() : { x: 0, y: 0 };
 				},
 			},
 			to: {
 				componentId: link.to.componentId,
 				side: link.to.side,
 				getNodeCenter: () => {
-					if (window.__getNodeCenterMap) {
-						const fn =
-							window.__getNodeCenterMap[
-								`${link.to.componentId}-${link.to.side}`
-							];
-						return fn ? fn() : { x: 0, y: 0 };
-					}
-					return { x: 0, y: 0 };
+					const fn = nodeCenterMap[`${link.to.componentId}-${link.to.side}`];
+					return fn ? fn() : { x: 0, y: 0 };
 				},
 			},
 			color: link.color,
