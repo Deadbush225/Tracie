@@ -1118,10 +1118,10 @@ function makeRectilinearPath(x1, y1, x2, y2, fromSide, toSide, fromId, toId) {
 						"http://www.w3.org/2000/svg",
 						"rect"
 					);
-					rect.setAttribute("x", gx * gridSize);
-					rect.setAttribute("y", gy * gridSize);
-					rect.setAttribute("width", gridSize);
-					rect.setAttribute("height", gridSize);
+					rect.setAttribute("x", `${gx * gridSize}`);
+					rect.setAttribute("y", `${gy * gridSize}`);
+					rect.setAttribute("width", `${gridSize}`);
+					rect.setAttribute("height", `${gridSize}`);
 					rect.setAttribute("fill", blocked ? "#f44336" : "#4caf50");
 					rect.setAttribute("fill-opacity", blocked ? "0.18" : "0.08");
 					rect.setAttribute("stroke", blocked ? "#f44336" : "#4caf50");

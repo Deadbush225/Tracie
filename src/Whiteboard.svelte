@@ -1096,7 +1096,9 @@
 	function updateSelectionBox() {
 		console.log("Creating selection visualizer");
 
-		const selectionOverlay = document.querySelector(".group-selection-box");
+		const selectionOverlay = document.querySelector(
+			".group-selection-box"
+		) as HTMLElement;
 
 		if ($selectedComponentIds.length > 0) {
 			// Find bounding box of all selected components in canvas space
@@ -1122,11 +1124,13 @@
 			if (selectionOverlay) {
 				// Since selection overlay is inside the transformed div,
 				// use canvas coordinates directly (component x, y positions)
-				selectionOverlay.style.left = `${minX}px`;
-				selectionOverlay.style.top = `${minY}px`;
-				selectionOverlay.style.width = `${maxX - minX}px`;
-				selectionOverlay.style.height = `${maxY - minY}px`;
-				selectionOverlay.style.opacity = "100%";
+				if (selectionOverlay) {
+					selectionOverlay.style.left = `${minX}px`;
+					selectionOverlay.style.top = `${minY}px`;
+					selectionOverlay.style.width = `${maxX - minX}px`;
+					selectionOverlay.style.height = `${maxY - minY}px`;
+					selectionOverlay.style.opacity = "100%";
+				}
 			}
 		} else {
 			if (selectionOverlay) {
@@ -1866,7 +1870,6 @@
 						id={comp.id}
 						x={comp.x}
 						y={comp.y}
-						value={comp.value}
 						name={comp.name || "Pointer"}
 						on:nodeMouseDown={handleNodeMouseDown}
 						on:propertyChange={(e) => handlePropertyChange(e.detail)}
@@ -2098,7 +2101,7 @@
 
 	<!-- Zoom and pan controls indicator -->
 	<div class="canvas-info">
-		<div>Zoom: {(window.zoom * 100).toFixed(0)}%</div>
+		<div>Zoom: {($zoom * 100).toFixed(0)}%</div>
 		<!-- <div>Pan: X: {panX}px, Y: {panY}px</div> -->
 		<div style="font-size: 11px; color: #666; margin-top: 4px;">
 			Scroll: Pan | Ctrl+Scroll: Zoom | Middle Click: Pan | Ctrl+0: Reset

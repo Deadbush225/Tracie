@@ -194,13 +194,15 @@ function sanitizeForFirestore(value, depth = 0) {
 
 		if (hasNestedArray) {
 			// Convert nested array to object with numeric keys (e.g., 2D array -> { "0": [...], "1": [...] })
-			const obj = {};
+
+			// Add metadata to help with deserialization
+			const obj: Record<string, any> & {
+				__isNestedArray: boolean;
+				__length: number;
+			} = { __isNestedArray: true, __length: value.length };
 			value.forEach((item, idx) => {
 				obj[idx.toString()] = sanitizeForFirestore(item, depth + 1);
 			});
-			// Add metadata to help with deserialization
-			obj.__isNestedArray = true;
-			obj.__length = value.length;
 			return obj;
 		}
 
