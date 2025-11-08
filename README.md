@@ -19,14 +19,6 @@
   </p>
 </div>
 
-## Getting Started
-
-### Live Preview
-
-Try out Tracie: [Live Demo](https://tracie-viz.vercel.app/)
-
-Read the detailed docs [here](./docs/How%20to%20use.md)
-
 ## Features
 
 ### Core Features
@@ -79,4 +71,5 @@ AGPL-3.0 License
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
 
