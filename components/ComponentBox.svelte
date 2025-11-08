@@ -19,6 +19,7 @@
 	 * - Binary tree: "bottom-left", "bottom-right"
 	 * - Diagonal: "top-left", "top-right"
 	 */
+	import { zoom } from "../src/ui_store";
 	import { createEventDispatcher, onMount, onDestroy } from "svelte";
 	import { get } from "svelte/store";
 	import { svgRect, nodeCenterMap } from "../src/ui_store";
@@ -103,7 +104,8 @@
 		};
 	});
 
-	function getNodeCenter(side) {
+	import type { Point } from "../src/types";
+	function getNodeCenter(side): Point {
 		// Guard against null container (component not mounted or destroyed)
 		if (!container) {
 			// Return fallback position based on last known x,y
@@ -120,7 +122,7 @@
 		let _y = y;
 
 		// Calculate common positions
-		const z = typeof window !== "undefined" && window.zoom ? window.zoom : 1;
+		const z = get(zoom);
 		const invZ = z === 0 ? 1 : 1 / z;
 		// center/edge calculations should factor in current zoom (use division by zoom)
 		const centerX = _x + (width / 2) * invZ;

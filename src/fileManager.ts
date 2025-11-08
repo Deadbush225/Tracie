@@ -66,7 +66,7 @@ export function loadState(data) {
 				side: link.from.side,
 				getNodeCenter: () => {
 					const fn =
-						nodeCenterMap[`${link.from.componentId}-${link.from.side}`];
+						get(nodeCenterMap)[`${link.from.componentId}-${link.from.side}`];
 					return fn ? fn() : { x: 0, y: 0 };
 				},
 			},
@@ -74,7 +74,8 @@ export function loadState(data) {
 				componentId: link.to.componentId,
 				side: link.to.side,
 				getNodeCenter: () => {
-					const fn = nodeCenterMap[`${link.to.componentId}-${link.to.side}`];
+					const fn =
+						get(nodeCenterMap)[`${link.to.componentId}-${link.to.side}`];
 					return fn ? fn() : { x: 0, y: 0 };
 				},
 			},

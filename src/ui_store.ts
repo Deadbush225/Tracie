@@ -1,4 +1,5 @@
 import { writable } from "svelte/store";
+import { type Point } from "./types";
 
 export const svgRect = writable({ left: 0, top: 0, scrollX: 0, scrollY: 0 });
 
@@ -16,8 +17,10 @@ export function updateSvgRect2(svgContainer) {
 	}
 }
 
+export const zoom = writable(1);
+
 export const selectedComponentIds = writable([]);
 
 export const selectedLinks = writable([]);
 export const selectedLink = writable(null);
-export const nodeCenterMap = writable({});
+export const nodeCenterMap = writable({} as Record<string, () => Point>);

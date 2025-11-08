@@ -45,6 +45,7 @@
 		selectedLink,
 		selectedLinks,
 		nodeCenterMap,
+		zoom,
 	} from "./ui_store";
 	import { writable } from "svelte/store";
 	import FileBrowser from "../components/FileBrowser.svelte";
@@ -79,7 +80,6 @@
 	// Infinite canvas pan and window.zoom
 	let panX = 0;
 	let panY = 0;
-	window.zoom = 1;
 	let isPanning = false;
 	let panStartX = 0;
 	let panStartY = 0;
@@ -420,8 +420,6 @@
 
 	function handleNodeMouseDown({ detail }) {
 		mouse = $nodeCenterMap[`${detail.componentId}-${detail.side}`]();
-		console.log("Starting link from node at:", mouse);
-
 		// Store only componentId and side - getNodeCenter is in nodeCenterMap
 		draggingLink = {
 			from: {
@@ -438,10 +436,9 @@
 		mouse = {
 			// Convert screen coordinates -> canvas coordinates by removing SVG container offset,
 			// subtracting current pan, and dividing by the zoom factor.
-			x: (e.clientX - $svgRect.left - panX) / window.zoom,
-			y: (e.clientY - $svgRect.top - panY) / window.zoom,
+			x: (e.clientX - $svgRect.left - panX) / $zoom,
+			y: (e.clientY - $svgRect.top - panY) / $zoom,
 		};
-		console.log("Mouse Move:", mouse);
 		const el = document.elementFromPoint(e.clientX, e.clientY);
 		if (el && el.classList.contains("node")) {
 			const compId = +el.getAttribute("data-comp-id");
@@ -887,7 +884,7 @@
 			event.preventDefault();
 			panX = 0;
 			panY = 0;
-			window.zoom = 1;
+			$zoom = 1;
 		}
 
 		// Delete component/link
@@ -1161,13 +1158,13 @@
 			// Therefore: canvas = (screen - pan) / window.zoom
 			const screenX = event.clientX - containerRect.left;
 			const screenY = event.clientY - containerRect.top;
-			const canvasX = (screenX - panX) / window.zoom;
-			const canvasY = (screenY - panY) / window.zoom;
+			const canvasX = (screenX - panX) / $zoom;
+			const canvasY = (screenY - panY) / $zoom;
 
 			console.log("=== SELECTION START ===");
 			console.log(`Screen: (${screenX.toFixed(1)}, ${screenY.toFixed(1)})`);
 			console.log(
-				`Pan: (${panX.toFixed(1)}, ${panY.toFixed(1)}), Zoom: ${window.zoom.toFixed(2)}`
+				`Pan: (${panX.toFixed(1)}, ${panY.toFixed(1)}), Zoom: ${$zoom.toFixed(2)}`
 			);
 			console.log(`Canvas: (${canvasX.toFixed(1)}, ${canvasY.toFixed(1)})`);
 
@@ -1195,8 +1192,8 @@
 			// Update selection box dimensions
 			const screenX = event.clientX - containerRect.left;
 			const screenY = event.clientY - containerRect.top;
-			const canvasX = (screenX - panX) / window.zoom;
-			const canvasY = (screenY - panY) / window.zoom;
+			const canvasX = (screenX - panX) / $zoom;
+			const canvasY = (screenY - panY) / $zoom;
 
 			selectionBox = {
 				x: Math.min(selectionStartPos.x, canvasX),
@@ -1415,7 +1412,7 @@
 		if (event.ctrlKey) {
 			// Zoom with Ctrl+Wheel
 			const zoomFactor = event.deltaY > 0 ? 0.9 : 1.1;
-			const newZoom = Math.max(0.1, Math.min(3, window.zoom * zoomFactor));
+			const newZoom = Math.max(0.1, Math.min(3, $zoom * zoomFactor));
 
 			// Zoom towards mouse position
 			const mouseX = event.clientX;
@@ -1425,10 +1422,10 @@
 			const dx = mouseX - panX;
 			const dy = mouseY - panY;
 
-			panX = mouseX - dx * (newZoom / window.zoom);
-			panY = mouseY - dy * (newZoom / window.zoom);
+			panX = mouseX - dx * (newZoom / $zoom);
+			panY = mouseY - dy * (newZoom / $zoom);
 
-			window.zoom = newZoom;
+			$zoom = newZoom;
 		} else {
 			// Pan with wheel
 			panX -= event.deltaX;
@@ -1674,7 +1671,7 @@
 					<button
 						class="dropdown-item"
 						on:click={() => {
-							delete$selectedLinks();
+							deleteselectedLinks();
 							openDropdown = null;
 						}}
 						disabled={!$currentFilename ||
@@ -1793,13 +1790,13 @@
 		<defs>
 			<pattern
 				id="grid"
-				width={20 * window.zoom}
-				height={20 * window.zoom}
+				width={20 * $zoom}
+				height={20 * $zoom}
 				patternUnits="userSpaceOnUse"
 			>
-				<rect width={20 * window.zoom} height={20 * window.zoom} fill="none" />
+				<rect width={20 * $zoom} height={20 * $zoom} fill="none" />
 				<path
-					d="M {20 * window.zoom} 0 L 0 0 0 {20 * window.zoom}"
+					d="M {20 * $zoom} 0 L 0 0 0 {20 * $zoom}"
 					fill="none"
 					stroke="#e0e0e0"
 					stroke-width="0.5"
@@ -1811,7 +1808,7 @@
 
 	<!-- Canvas content with pan and window.zoom transform -->
 	<div
-		style="transform: translate({panX}px, {panY}px) scale({window.zoom}); transform-origin: 0 0; width: 5000px; height: 5000px; position:relative;"
+		style="transform: translate({panX}px, {panY}px) scale({$zoom}); transform-origin: 0 0; width: 5000px; height: 5000px; position:relative;"
 	>
 		{#each comps as comp (comp.id)}
 			{#if comp.type === "array"}

@@ -16,6 +16,16 @@ export const links = writable([]);
 
 // Developer console helpers
 // Call `listComponents()` in the browser console to print a table of components
+
+declare global {
+	interface Window {
+		listComponents?: () => any;
+		listLinks?: () => any;
+		__componentsStore?: any;
+		listNodeCenters?: () => any;
+	}
+}
+
 if (typeof window !== "undefined") {
 	window.listComponents = () => {
 		const comps = get(components);
@@ -114,6 +124,7 @@ export function redo() {
 
 // Add Component Command
 class AddComponentCommand {
+	component: any;
 	constructor(component) {
 		this.component = component;
 	}
@@ -131,6 +142,9 @@ class AddComponentCommand {
 
 // Delete Component Command (supports single or multiple component IDs)
 class DeleteComponentCommand {
+	componentIds: any[];
+	components: any[];
+	affectedLinks: any[];
 	constructor(componentIds) {
 		// Accept either a single ID or an array of IDs
 		this.componentIds = Array.isArray(componentIds)
@@ -183,6 +197,10 @@ class DeleteComponentCommand {
 
 // Move Component Command
 class MoveComponentCommand {
+	componentId: any;
+	dx: any;
+	dy: any;
+	doNotRunYet: boolean;
 	constructor(componentId, dx, dy) {
 		this.componentId = componentId;
 		this.dx = dx;
@@ -226,6 +244,10 @@ class MoveComponentCommand {
 
 // Move Multiple Components Command
 class MoveMultipleComponentsCommand {
+	componentIds: any;
+	dx: any;
+	dy: any;
+	doNotRunYet: boolean;
 	constructor(componentIds, dx, dy) {
 		this.componentIds = componentIds;
 		this.dx = dx;
@@ -262,6 +284,9 @@ class MoveMultipleComponentsCommand {
 
 // Create Link Command
 class CreateLinkCommand {
+	link: any;
+	fromCompType: any;
+	toCompType: any;
 	constructor(link) {
 		this.link = link;
 		// Store component info to update linkedArrays
@@ -373,6 +398,8 @@ function isArrayType(type) {
 }
 
 class DeleteLinksCommand {
+	links: any;
+	deleteLinkCommands: any;
 	constructor(links) {
 		this.links = links;
 		this.deleteLinkCommands = links.map((link) => new DeleteLinkCommand(link));
@@ -389,6 +416,9 @@ class DeleteLinksCommand {
 
 // Delete Link Command
 class DeleteLinkCommand {
+	link: any;
+	fromCompType: any;
+	toCompType: any;
 	constructor(link) {
 		this.link = link;
 		// Store component info to update linkedArrays when undoing
@@ -507,6 +537,10 @@ class DeleteLinkCommand {
 
 // Delete Link and Components Command
 class DeleteLinkAndComponentsCommand {
+	componentIds: any;
+	links: any;
+	deleteComponent: DeleteComponentCommand;
+	deleteLink: DeleteLinksCommand;
 	constructor(componentIds, links) {
 		this.componentIds = componentIds;
 		this.links = links;
@@ -527,6 +561,8 @@ class DeleteLinkAndComponentsCommand {
 
 // Duplicate Component Command
 class DuplicateComponentCommand {
+	originalId: any;
+	newComponent: any;
 	constructor(originalId, newComponent) {
 		this.originalId = originalId;
 		this.newComponent = newComponent;
@@ -779,9 +815,9 @@ function getNodeCenterFromMap(componentId, side) {
 function getDistance(x1, y1, x2, y2) {
 	return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
 }
-
+import type { Point } from "./types";
 // Function to get all possible connection points for a component
-function getConnectionPoints(componentId) {
+function getConnectionPoints(componentId): Point[] {
 	// Get component to determine its type
 	const component = get(components).find((c) => c.id === componentId);
 	let sides = ["top", "right", "bottom", "left"];
@@ -799,10 +835,10 @@ function getConnectionPoints(componentId) {
 		}
 	}
 
-	const points = {};
+	const points: Point[] = [];
 
 	sides.forEach((side) => {
-		const getNodeCenter = nodeCenterMap?.[`${componentId}-${side}`];
+		const getNodeCenter = get(nodeCenterMap)[`${componentId}-${side}`];
 		if (getNodeCenter) {
 			points[side] = getNodeCenter();
 		}
@@ -872,14 +908,15 @@ export function optimizeLinkPath(link) {
 							...l.from,
 							side: bestFromSide,
 							getNodeCenter:
-								nodeCenterMap?.[`${fromId}-${bestFromSide}`] ||
+								get(nodeCenterMap)[`${fromId}-${bestFromSide}`] ||
 								l.from.getNodeCenter,
 						},
 						to: {
 							...l.to,
 							side: bestToSide,
 							getNodeCenter:
-								nodeCenterMap?.[`${toId}-${bestToSide}`] || l.to.getNodeCenter,
+								get(nodeCenterMap)[`${toId}-${bestToSide}`] ||
+								l.to.getNodeCenter,
 						},
 					};
 				}
@@ -1338,7 +1375,7 @@ export function updateLinkEndpoints() {
 }
 
 // In Whiteboard_back.js
-export function addNodeComponent(value, x = 100, y = 100) {
+export function addNodeComponent(value = "", x = 100, y = 100) {
 	if (!value) {
 		value = prompt("Enter node value:");
 	}
@@ -1358,7 +1395,7 @@ export function addNodeComponent(value, x = 100, y = 100) {
 }
 
 // Add Binary Node Component (1 parent above, 2 children below)
-export function addBinaryNodeComponent(value, x = 100, y = 100) {
+export function addBinaryNodeComponent(value = "", x = 100, y = 100) {
 	if (!value) {
 		value = prompt("Enter binary node value:");
 	}
@@ -1378,7 +1415,12 @@ export function addBinaryNodeComponent(value, x = 100, y = 100) {
 }
 
 // Add N-ary Node Component (1 parent above, 1 child below)
-export function addNaryNodeComponent(value, x = 100, y = 100, childCount = 3) {
+export function addNaryNodeComponent(
+	value = "",
+	x = 100,
+	y = 100,
+	childCount = 3
+) {
 	if (!value) {
 		value = prompt("Enter n-ary node value:");
 	}
