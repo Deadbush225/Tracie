@@ -356,7 +356,4 @@
 	input {
 		background: transparent;
 	}
-
-	.header {
-	}
 </style>

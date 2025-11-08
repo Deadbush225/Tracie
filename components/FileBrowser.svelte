@@ -65,7 +65,14 @@
 
 {#if $showFileBrowser}
 	<div class="modal-backdrop" on:click={handleClose} role="presentation">
-		<div class="modal" on:click|stopPropagation role="dialog" aria-modal="true">
+		<div
+			class="modal"
+			on:click|stopPropagation
+			on:keydown|stopPropagation
+			role="dialog"
+			tabindex="-1"
+			aria-modal="true"
+		>
 			<div class="modal-header">
 				<h2>Browse Files</h2>
 				<button class="close-btn" on:click={handleClose}>×</button>

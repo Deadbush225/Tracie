@@ -5,7 +5,7 @@
 	export let id;
 	export let x;
 	export let y;
-	export let value = "";
+	// export let value = "";
 	export let hoveredNode = null;
 	export let class_ = "";
 	export let name = "Pointer"; // Display name for the pointer

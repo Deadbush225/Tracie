@@ -133,12 +133,6 @@
 		/* padding-left: 10px; */
 	}
 
-	.node-value {
-		font-size: 14px;
-		color: #333;
-		cursor: text;
-	}
-
 	.node-input {
 		width: 4em;
 		border: none;
@@ -213,36 +207,5 @@
 	.add-node-btn.top-left {
 		top: -24px;
 		left: -24px;
-	}
-
-	/* Custom Node */
-	.next-pointer {
-		position: absolute;
-		right: 0;
-		top: 0;
-		height: 100%;
-		display: flex;
-		align-items: center;
-		padding-right: 20px;
-	}
-
-	.pointer-label {
-		font-size: 12px;
-		color: #666;
-		margin-right: 4px;
-	}
-
-	.connector {
-		width: 12px;
-		height: 12px;
-		background: #1976d2;
-		border-radius: 50%;
-		position: absolute;
-		right: -6px;
-		cursor: pointer;
-	}
-
-	.connector:hover {
-		background: #0d47a1;
 	}
 </style>

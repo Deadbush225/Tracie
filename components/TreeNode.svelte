@@ -34,6 +34,9 @@
 		<div
 			style="position:absolute; left:-20px; top:50px; width:20px; height:20px; cursor:pointer;"
 			on:click={() => addChild(node, "left")}
+			role="button"
+			tabindex="0"
+			on:keydown|stopPropagation
 		>
 			<div
 				style="width:20px; height:20px; border-radius:50%; background:#ccc; display:flex; align-items:center; justify-content:center;"
@@ -58,6 +61,9 @@
 		<div
 			style="position:absolute; left:40px; top:50px; width:20px; height:20px; cursor:pointer;"
 			on:click={() => addChild(node, "right")}
+			role="button"
+			tabindex="0"
+			on:keydown|stopPropagation
 		>
 			<div
 				style="width:20px; height:20px; border-radius:50%; background:#ccc; display:flex; align-items:center; justify-content:center;"

@@ -185,6 +185,8 @@
 	});
 </script>
 
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<!-- svelte-ignore a11y_click_events_have_key_events -->
 <div
 	bind:this={container}
 	id={"comp-" + id}
@@ -194,6 +196,8 @@
 		: 'default'}; padding:8px;"
 	on:mousedown={handleMouseDown}
 	on:click|stopPropagation
+	role="button"
+	tabindex="0"
 >
 	{#if deletable}
 		<button
@@ -250,7 +254,7 @@
 					side,
 					getNodeCenter: () => getNodeCenter(side),
 				})}
-		/>
+		></div>
 	{/each}
 
 	<!-- Slot for custom content -->
