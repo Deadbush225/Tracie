@@ -26,3 +26,6 @@ dist-ssr
 # Markdown files
 *.md
 !README.md
+
+# Configuration files
+package-lock.json
