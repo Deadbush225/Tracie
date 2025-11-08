@@ -1,0 +1,10 @@
+{
+	"extends": "./jsconfig.json",
+	"compilerOptions": {
+		"strict": false,
+		"allowJs": true,
+		"checkJs": false,
+		"types": ["svelte"]
+	},
+	"include": ["src/**/*"]
+}
