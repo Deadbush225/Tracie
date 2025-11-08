@@ -19,6 +19,10 @@
   </p>
 </div>
 
+## Demo
+
+![](./docs/demo.webp)
+
 ## Features
 
 ### Core Features
@@ -71,5 +75,3 @@ AGPL-3.0 License
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
-
-
