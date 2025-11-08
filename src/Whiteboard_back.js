@@ -842,6 +842,10 @@ export function optimizeLinkPath(link) {
 				continue; // Skip this combination
 			}
 
+			if (isBinaryConnection) {
+				continue;
+			}
+
 			const distance = getDistance(fromPos.x, fromPos.y, toPos.x, toPos.y);
 			if (distance < shortestDistance) {
 				shortestDistance = distance;

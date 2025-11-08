@@ -667,8 +667,22 @@
 		// Start position (leftmost child)
 		let currentX = parentX - totalWidth / 2;
 
+		// check links with child.id as to.componentId, then check what direction they are connected from, if they are on the left, process them first,
+		// Todo: Make sure left is processed first
+		const leftChildren = children.filter((child) => {
+			const link = $links.filter((link) => link.to.componentId === child.id);
+			return link.some((link) => link.from.side.includes("bottom-left"));
+		});
+		const rightChildren = children.filter((child) => {
+			const link = $links.filter((link) => link.to.componentId === child.id);
+			return link.every((link) => !link.from.side.includes("bottom-left"));
+		});
+		console.log("Left:\n", leftChildren);
+		console.log("Right:\n", rightChildren);
+		const orderedChildren = [...leftChildren, ...rightChildren];
+
 		// Position each child
-		children.forEach((child, index) => {
+		orderedChildren.forEach((child, index) => {
 			const childWidth = childBounds[index].width;
 			const childCenterX = currentX + childWidth / 2;
 			const childY = parentY + 100; // Fixed vertical spacing
@@ -688,6 +702,7 @@
 
 		// Add current node position
 		positions.push({ id: nodeId, x: parentX, y: parentY });
+		console.log("Positions:\n", positions);
 
 		return positions;
 	}
