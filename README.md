@@ -1,12 +1,12 @@
 <div align="center">
-  <img src="./public/Tracie.png" style="width: 4em"></img>
+  <img src="./public/Tracie.png" style="width: 4em; margin-bottom: 0.5em"></img>
+    </br>
+  <p style="font-size:2em; font-weight:bold; margin-bottom:0">Tracie</p>
+  <p style="font-size:1.2em; font-weight:500; margin-bottom:0.2em">Interactive Algorithm Visualization</p>
+<p style="border-bottom: 1px solid white; width: 15em; height: 1px; margin: 10px 0 !important;"></p>
+  <p>Tracie is an interactive whiteboard tool designed to help visualize data structures and algorithms.
+  </p>
 </div>
-
-</br>
-
-# Tracie - Interactive Algorithm Visualization
-
-Tracie is an interactive whiteboard tool designed to help visualize data structures and algorithms. It allows you to create, manipulate, and connect various data structure components to trace through algorithms step-by-step.
 
 ## Getting Started
 
@@ -26,23 +26,16 @@ Read the detailed docs [here](./docs/How%20to%20use.md)
 - Full undo/redo functionality
 - Intuitive drag-and-drop interface
 - Infinite canvas with pan and zoom
-
-### Data Structure Components
-
-- Arrays with indexed cells
-- 2D Tables/Matrices
-- Pointers and variables
-- Iterators with navigation
-- Linked list nodes
-- Binary tree nodes
-- N-ary tree nodes
-
-### File Management
-
+- Data Structure Components
+  - Arrays with indexed cells
+  - 2D Tables/Matrices
+  - Pointers and variables
+  - Iterators with navigation
+  - Linked list nodes
+  - Binary tree nodes
+  - N-ary tree nodes
 - Save diagrams to your personal cloud storage
-- Open previously saved files
-- Export diagrams as PNG images
-- Filename display with unsaved changes indicator
+- Export diagrams as images
 
 ## Development
 
