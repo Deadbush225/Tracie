@@ -1,3 +1,10 @@
+[![Contributors][contributors-shield]][contributors-url]
+[![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
+[![Unlicense License][license-shield]][license-url]
+[![LinkedIn][linkedin-shield]][linkedin-url]
+
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
@@ -75,3 +82,18 @@ AGPL-3.0 License
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+[contributors-shield]: https://img.shields.io/github/contributors/Deadbush225/Tracie.svg?style=for-the-badge
+[contributors-url]: https://github.com/Deadbush225/Tracie/graphs/contributors
+[contributors-shield]: https://img.shields.io/github/contributors/Deadbush225/Tracie.svg?style=for-the-badge
+[contributors-url]: https://github.com/Deadbush225/Tracie/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/Deadbush225/Tracie.svg?style=for-the-badge
+[forks-url]: https://github.com/Deadbush225/Tracie/network/members
+[stars-shield]: https://img.shields.io/github/stars/Deadbush225/Tracie.svg?style=for-the-badge
+[stars-url]: https://github.com/Deadbush225/Tracie/stargazers
+[issues-shield]: https://img.shields.io/github/issues/Deadbush225/Tracie.svg?style=for-the-badge
+[issues-url]: https://github.com/Deadbush225/Tracie/issues
+[license-shield]: https://img.shields.io/github/license/Deadbush225/Tracie.svg?style=for-the-badge
+[license-url]: https://github.com/Deadbush225/Tracie/blob/master/LICENSE
+[linkedin-shield]: https://img.shields.io/badge/Linkedin-gray?style=for-the-badge
+[linkedin-url]: https://linkedin.com/in/eliazar-inso-0342b721
